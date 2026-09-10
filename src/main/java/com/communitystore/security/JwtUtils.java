@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
@@ -21,11 +22,12 @@ public class JwtUtils {
         return new BCryptPasswordEncoder();
     }
 
-    private static final String SECRET_KEY = "YourVeryLongSecretKeyForJWTTokenGenerationAtLeast32Characters";
+    @Value("${app.jwt.secret}")
+    private String secretKey;
     private static final int EXPIRATION_TIME = 86400000; // 24 hours
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
     public String generateToken(String email, String role) {

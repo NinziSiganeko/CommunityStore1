@@ -22,7 +22,7 @@ public class Payment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private Customer customer;
+    private User buyer;
 
     protected Payment() {
     }
@@ -34,7 +34,7 @@ public class Payment {
         this.paymentDate = builder.paymentDate;
         this.status = builder.status;
         this.transactionReference = builder.transactionReference;
-        this.customer = builder.customer;
+        this.buyer = builder.buyer;
         this.customerOrder = builder.customerOrder;
     }
 
@@ -57,8 +57,8 @@ public class Payment {
     public CustomerOrder getCustomerOrder() {
         return customerOrder;
     }
-    public Customer getCustomer() {
-        return customer;
+    public User getBuyer() {
+        return buyer;
     }
     public String getTransactionReference() {
         return transactionReference;
@@ -73,7 +73,7 @@ public class Payment {
                 ", status=" + status +
                 ", transactionReference='" + transactionReference + '\'' +
                 ", customerOrder=" + customerOrder +
-                ", customer=" + customer +
+                ", buyer=" + buyer +
                 '}';
     }
     public static class Builder {
@@ -83,7 +83,7 @@ public class Payment {
         private LocalDateTime paymentDate;
         private PaymentStatus status;
         private String transactionReference;
-        private Customer customer;
+        private User buyer;
         private CustomerOrder customerOrder;
 
         public Builder setPaymentId(Long paymentId) {
@@ -114,8 +114,8 @@ public class Payment {
             this.customerOrder = customerOrder;
             return this;
         }
-        public Builder setCustomer(Customer customer) {
-            this.customer = customer;
+        public Builder setBuyer(User buyer) {
+            this.buyer = buyer;
             return this;
         }
         public Builder copy(Payment payment) {
@@ -125,7 +125,7 @@ public class Payment {
             this.paymentDate = payment.paymentDate;
             this.status = payment.status;
             this.transactionReference = payment.transactionReference;
-            this.customer = payment.customer;
+            this.buyer = payment.buyer;
             this.customerOrder = payment.customerOrder;
             return this;
         }

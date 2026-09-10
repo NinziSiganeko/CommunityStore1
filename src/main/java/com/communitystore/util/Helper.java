@@ -144,8 +144,8 @@ public class Helper {
         return orderItems != null && !orderItems.isEmpty();
     }
 
-    public static boolean isValidCustomer(Object customer) {
-        return customer != null;
+    public static boolean isValidUser(Object user) {
+        return user != null;
     }
 
     // Order item validation
@@ -206,10 +206,10 @@ public class Helper {
     }
 
     // Order completeness check
-    public static boolean isOrderComplete(String orderNumber, Long customerId, List<?> orderItems,
+    public static boolean isOrderComplete(String orderNumber, Long buyerId, List<?> orderItems,
                                           String paymentMethod, String shippingAddress) {
         return !isNullOrEmpty(orderNumber) &&
-                isValidId(customerId) &&
+                isValidId(buyerId) &&
                 hasValidOrderItems(orderItems) &&
                 isValidPaymentMethod(paymentMethod) &&
                 isValidShippingAddress(shippingAddress);
@@ -222,10 +222,10 @@ public class Helper {
     }
 
     // Validate order for creation
-    public static void validateOrderForCreation(Long customerId, List<?> orderItems,
+    public static void validateOrderForCreation(Long buyerId, List<?> orderItems,
                                                 String paymentMethod, String shippingAddress) {
-        if (!isValidId(customerId)) {
-            throw new IllegalArgumentException("Invalid customer ID");
+        if (!isValidId(buyerId)) {
+            throw new IllegalArgumentException("Invalid buyer ID");
         }
         if (!hasValidOrderItems(orderItems)) {
             throw new IllegalArgumentException("Order must contain at least one item");

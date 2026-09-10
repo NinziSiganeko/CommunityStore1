@@ -2,6 +2,8 @@ package com.communitystore.controller;
 
 import com.communitystore.domain.Product;
 import com.communitystore.domain.ProductCategory;
+import com.communitystore.domain.User;
+import com.communitystore.repository.UserRepository;
 import com.communitystore.service.ProductCategoryService;
 import com.communitystore.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,12 +24,16 @@ public class ProductController {
     @Autowired
     private ProductCategoryService categoryService;
 
+    @Autowired
+    private UserRepository userRepository;
+
     @PostMapping
     public ResponseEntity<Product> createProduct(
             @RequestParam String name,
             @RequestParam double price,
             @RequestParam int stock,
             @RequestParam Long category_Id,
+            @RequestParam(required = false) Long sellerId,
             @RequestParam(required = false) MultipartFile productImage) throws IOException {
 
         // Validate stock
@@ -51,6 +57,11 @@ public class ProductController {
 
         if (productImage != null && !productImage.isEmpty()) {
             product.setProductImage(productImage.getBytes());
+        }
+        if (sellerId != null) {
+            User seller = userRepository.findById(sellerId)
+                    .orElseThrow(() -> new IllegalArgumentException("Seller not found"));
+            product.setSeller(seller);
         }
 
         // 3. SAVE PRODUCT

@@ -1,6 +1,6 @@
 package com.communitystore.service;
 
-import com.communitystore.domain.Customer;
+import com.communitystore.domain.User;
 import com.communitystore.domain.CustomerOrder;
 import com.communitystore.domain.OrderItem;
 import com.communitystore.domain.Product;
@@ -123,8 +123,8 @@ public class CustomerOrderService implements ICustomerOrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CustomerOrder> getOrdersByCustomerId(Long userId) {
-        return orderRepository.findByCustomerUserId(userId);
+    public List<CustomerOrder> getOrdersByBuyerId(Long userId) {
+        return orderRepository.findByBuyerUserId(userId);
     }
 
     @Override
@@ -141,10 +141,10 @@ public class CustomerOrderService implements ICustomerOrderService {
 
     // Add this method to CustomerOrderService
     @Transactional
-    public CustomerOrder createOrderFromDetails(Customer customer, List<OrderItem> orderItems,
+    public CustomerOrder createOrderFromDetails(User buyer, List<OrderItem> orderItems,
                                                 String paymentMethod, String shippingAddress) {
         // Use the factory to create order with generated number
-        CustomerOrder order = CustomerOrderFactory.createOrder(customer, orderItems, paymentMethod, shippingAddress);
+        CustomerOrder order = CustomerOrderFactory.createOrder(buyer, orderItems, paymentMethod, shippingAddress);
 
         // CRITICAL: Update stock for each product before saving order
         if (order.getOrderItems() != null) {

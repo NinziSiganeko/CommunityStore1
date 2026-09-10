@@ -1,11 +1,11 @@
 package com.communitystore.service;
 
 
-import com.communitystore.domain.Customer;
+import com.communitystore.domain.User;
 import com.communitystore.domain.CustomerOrder;
 import com.communitystore.domain.Payment;
 import com.communitystore.repository.CustomerOrderRepository;
-import com.communitystore.repository.CustomerRepository;
+import com.communitystore.repository.UserRepository;
 import com.communitystore.repository.PaymentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,19 +21,18 @@ public class PaymentService implements IPaymentService {
     private PaymentRepository paymentRepository;
 
     @Autowired
-    private CustomerRepository customerRepository;
+    private UserRepository userRepository;
 
     @Autowired
     private CustomerOrderRepository customerOrderRepository;
 
     @Override
     public Payment create(Payment payment) {
-        if (payment.getCustomer() == null || payment.getCustomer().getUserId() == null) {
-            throw new IllegalArgumentException("Customer information missing in payment request.");
+        if (payment.getBuyer() == null || payment.getBuyer().getUserId() == null) {
+            throw new IllegalArgumentException("Buyer information missing in payment request.");
         }
-        // Fetch customer
-        Customer customer = customerRepository.findById(payment.getCustomer().getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("Customer not found."));
+        User buyer = userRepository.findById(payment.getBuyer().getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
         // Create linked order
         CustomerOrder customerOrder = new CustomerOrder.Builder()
                 .setOrderDate(LocalDateTime.now())
@@ -42,7 +41,7 @@ public class PaymentService implements IPaymentService {
         // Link both sides
         payment = new Payment.Builder()
                 .copy(payment)
-                .setCustomer(customer)
+                .setBuyer(buyer)
                 .setCustomerOrder(customerOrder)
                 .build();
         // Persist order first, then payment

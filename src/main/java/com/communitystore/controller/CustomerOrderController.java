@@ -1,7 +1,7 @@
 package com.communitystore.controller;
 
 
-import com.communitystore.domain.Customer;
+import com.communitystore.domain.User;
 import com.communitystore.domain.CustomerOrder;
 import com.communitystore.domain.OrderItem;
 import com.communitystore.factory.CustomerOrderFactory;
@@ -24,11 +24,11 @@ public class CustomerOrderController {
     @PostMapping("/create")
     public ResponseEntity<CustomerOrder> createOrderFromDetails(@RequestBody OrderRequest request) {
         try {
-            System.out.println(" Creating order via factory for customer: " +
-                    (request.getCustomer() != null ? request.getCustomer().getUserId() : "null"));
+            System.out.println("Creating order for buyer: " +
+                    (request.getBuyer() != null ? request.getBuyer().getUserId() : "null"));
 
             CustomerOrder order = CustomerOrderFactory.createOrder(
-                    request.getCustomer(),
+                    request.getBuyer(),
                     request.getOrderItems(),
                     request.getPaymentMethod(),
                     request.getShippingAddress()
@@ -51,8 +51,8 @@ public class CustomerOrderController {
     @PostMapping
     public ResponseEntity<CustomerOrder> createOrder(@RequestBody CustomerOrder order) {
         try {
-            System.out.println(" Creating order directly: " +
-                    (order.getCustomer() != null ? order.getCustomer().getUserId() : "null"));
+            System.out.println("Creating order directly for buyer: " +
+                    (order.getBuyer() != null ? order.getBuyer().getUserId() : "null"));
 
             CustomerOrder createdOrder = orderService.create(order);
             return ResponseEntity.ok(createdOrder);
@@ -76,15 +76,15 @@ public class CustomerOrderController {
         }
     }
 
-    @GetMapping("/customer/{userId}")
-    public ResponseEntity<List<CustomerOrder>> getCustomerOrders(@PathVariable Long userId) {
+    @GetMapping("/buyer/{userId}")
+    public ResponseEntity<List<CustomerOrder>> getBuyerOrders(@PathVariable Long userId) {
         try {
-            System.out.println(" Fetching orders for user ID: " + userId);
-            List<CustomerOrder> orders = orderService.getOrdersByCustomerId(userId);
-            System.out.println(" Found " + orders.size() + " orders for user: " + userId);
+            System.out.println("Fetching orders for buyer ID: " + userId);
+            List<CustomerOrder> orders = orderService.getOrdersByBuyerId(userId);
+            System.out.println("Found " + orders.size() + " orders for buyer: " + userId);
             return ResponseEntity.ok(orders);
         } catch (Exception e) {
-            System.err.println(" Error fetching customer orders: " + e.getMessage());
+            System.err.println("Error fetching buyer orders: " + e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }
@@ -145,7 +145,7 @@ public class CustomerOrderController {
 
     // Request DTO for factory-based order creation
     public static class OrderRequest {
-        private Customer customer;
+        private User buyer;
         private List<OrderItem> orderItems;
         private String paymentMethod;
         private String shippingAddress;
@@ -154,20 +154,20 @@ public class CustomerOrderController {
         public OrderRequest() {}
 
         // All args constructor
-        public OrderRequest(Customer customer, List<OrderItem> orderItems, String paymentMethod, String shippingAddress) {
-            this.customer = customer;
+        public OrderRequest(User buyer, List<OrderItem> orderItems, String paymentMethod, String shippingAddress) {
+            this.buyer = buyer;
             this.orderItems = orderItems;
             this.paymentMethod = paymentMethod;
             this.shippingAddress = shippingAddress;
         }
 
         // Getters and setters
-        public Customer getCustomer() {
-            return customer;
+        public User getBuyer() {
+            return buyer;
         }
 
-        public void setCustomer(Customer customer) {
-            this.customer = customer;
+        public void setBuyer(User buyer) {
+            this.buyer = buyer;
         }
 
         public List<OrderItem> getOrderItems() {
@@ -197,7 +197,7 @@ public class CustomerOrderController {
         @Override
         public String toString() {
             return "OrderRequest{" +
-                    "customer=" + (customer != null ? customer.getUserId() : "null") +
+                    "buyer=" + (buyer != null ? buyer.getUserId() : "null") +
                     ", orderItems=" + (orderItems != null ? orderItems.size() : 0) +
                     ", paymentMethod='" + paymentMethod + '\'' +
                     ", shippingAddress='" + shippingAddress + '\'' +

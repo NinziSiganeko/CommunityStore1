@@ -35,8 +35,8 @@ public class PaymentController {
             response.put("amount", created.getAmount());
             response.put("orderId", created.getCustomerOrder().getOrderId());
             response.put("orderDate", created.getCustomerOrder().getOrderDate());
-            response.put("customerName", created.getCustomer().getFirstName() + " " + created.getCustomer().getLastName());
-            response.put("customerEmail", created.getCustomer().getEmail());
+            response.put("buyerName", created.getBuyer().getFirstName() + " " + created.getBuyer().getLastName());
+            response.put("buyerEmail", created.getBuyer().getEmail());
 
             return ResponseEntity.ok(response);
 

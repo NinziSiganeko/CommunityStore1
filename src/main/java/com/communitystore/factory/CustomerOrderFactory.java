@@ -1,6 +1,6 @@
 package com.communitystore.factory;
 
-import com.communitystore.domain.Customer;
+import com.communitystore.domain.User;
 import com.communitystore.domain.CustomerOrder;
 import com.communitystore.domain.OrderItem;
 import com.communitystore.util.Helper;
@@ -9,12 +9,12 @@ import java.util.List;
 
 public class CustomerOrderFactory {
 
-    public static CustomerOrder createOrder(Customer customer, List<OrderItem> orderItems,
+    public static CustomerOrder createOrder(User buyer, List<OrderItem> orderItems,
                                             String paymentMethod, String shippingAddress) {
 
         // Comprehensive validation
-        if (!Helper.isValidCustomer(customer)) {
-            throw new IllegalArgumentException("Customer cannot be null");
+        if (!Helper.isValidUser(buyer)) {
+            throw new IllegalArgumentException("Buyer cannot be null");
         }
 
         if (!Helper.hasValidOrderItems(orderItems)) {
@@ -29,8 +29,8 @@ public class CustomerOrderFactory {
             throw new IllegalArgumentException("Shipping address must be between 10-200 characters");
         }
 
-        if (!Helper.isValidId(customer.getUserId())) {
-            throw new IllegalArgumentException("Customer must have a valid ID");
+        if (!Helper.isValidId(buyer.getUserId())) {
+            throw new IllegalArgumentException("Buyer must have a valid ID");
         }
 
         // Validate all order items
@@ -60,7 +60,7 @@ public class CustomerOrderFactory {
 
         return new CustomerOrder.Builder()
                 .setOrderNumber(orderNumber)
-                .setCustomer(customer)
+                .setBuyer(buyer)
                 .setOrderItems(orderItems)
                 .setTotalAmount(totalAmount)
                 .setPaymentMethod(paymentMethod.toUpperCase())
@@ -70,14 +70,14 @@ public class CustomerOrderFactory {
                 .build();
     }
 
-    public static CustomerOrder createOrderWithId(Long orderId, Customer customer, List<OrderItem> orderItems,
+    public static CustomerOrder createOrderWithId(Long orderId, User buyer, List<OrderItem> orderItems,
                                                   String paymentMethod, String shippingAddress) {
 
         if (!Helper.isValidId(orderId)) {
             throw new IllegalArgumentException("Order ID must be valid");
         }
 
-        CustomerOrder order = createOrder(customer, orderItems, paymentMethod, shippingAddress);
+        CustomerOrder order = createOrder(buyer, orderItems, paymentMethod, shippingAddress);
 
         return new CustomerOrder.Builder()
                 .copy(order)

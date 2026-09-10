@@ -21,6 +21,10 @@ public class Product {
     @JoinColumn(name = "category_id")
     private ProductCategory category;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_id")
+    private User seller;
+
     protected Product() {}
 
     private Product(Builder builder) {
@@ -39,11 +43,13 @@ public class Product {
     public int getStock() { return stock; }
     public byte[] getProductImage() { return productImage; }
     public ProductCategory getCategory() { return category; }
+    public User getSeller() { return seller; }
 
     // ================= Setters =================
     public void setStock(int stock) { this.stock = stock; } // ← ADD THIS SETTER
     public void setProductImage(byte[] productImage) { this.productImage = productImage; }
     public void setCategory(ProductCategory category) { this.category = category; }
+    public void setSeller(User seller) { this.seller = seller; }
 
     // ================= Builder =================
     public static class Builder {
