@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
-import MainLayout from "./mainlayout/MainLayout.jsx";
+import { BrowserRouter } from "react-router-dom";
+import AppRoutes from "./routes/AppRoutes.jsx";
 
 function App() {
-  const [screen, setScreen] = useState("home");
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
 
@@ -12,14 +12,9 @@ function App() {
     toastTimer.current = setTimeout(() => setToast(null), 2200);
   }
 
-  function handleNav(id) {
-    if (id === "home" || id === "market") setScreen(id);
-    else if (id === "sell") showToast("List an Item — coming in Sprint 3 🛒");
-    else if (id === "chat") showToast("Chat — coming in Sprint 4 💬");
-    else if (id === "profile") showToast("Profile — assigned to another team member 👤");
-  }
-
-  return <MainLayout screen={screen} toast={toast} onNav={handleNav} onToast={showToast} />;
+  return <BrowserRouter>
+    <AppRoutes toast={toast} onToast={showToast} />
+  </BrowserRouter>;
 }
 
 export default App;

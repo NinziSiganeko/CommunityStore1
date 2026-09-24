@@ -2,8 +2,10 @@ import { useState } from "react";
 import { PRODUCTS } from "../utils/data.jsx";
 import { Badge, Rating } from "../components/Icons.jsx";
 import { BottomNav, TopBar } from "../components/Navigation.jsx";
+import { useNavigate } from "react-router-dom";
 
-function Marketplace({ onNav, onToast }) {
+function Marketplace({ onToast }) {
+  const navigate = useNavigate();
   const [activeFilters, setActiveFilters] = useState({ category: false, price: false, condition: false });
   function toggleFilter(key) {
     setActiveFilters((previous) => ({ ...previous, [key]: !previous[key] }));
@@ -20,7 +22,7 @@ function Marketplace({ onNav, onToast }) {
     </div>
     <div className="market-grid-wrap">
       <div className="market-grid">{PRODUCTS.map((item, index) =>
-          <div key={item.id} className="product-card">
+          <div key={item.id} className="product-card" onClick={() => navigate(`/product/${item.id}`)} role="link" tabIndex="0">
             <div className="product-img-wrap">
               <img src={item.img} alt={item.name} />
               {item.badge && <span className="badge-img-overlay">
@@ -43,7 +45,7 @@ function Marketplace({ onNav, onToast }) {
       </div>
       <div style={{ height: 16 }} />
     </div>
-    <BottomNav active="market" onNav={onNav} />
+    <BottomNav active="market" />
   </div>;
 }
 

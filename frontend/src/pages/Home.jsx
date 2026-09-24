@@ -1,8 +1,10 @@
 import { ANNOUNCEMENTS, CATEGORIES, TRENDING_ITEMS } from "../utils/data.jsx";
 import { Badge, Rating, ShieldIcon } from "../components/Icons.jsx";
 import { BottomNav, TopBar } from "../components/Navigation.jsx";
+import { useNavigate } from "react-router-dom";
 
-function Home({ onNav, onToast }) {
+function Home({ onToast }) {
+  const navigate = useNavigate();
   return <div className="screen">
     <TopBar onBell={() => onToast("No new notifications")} />
     <div className="scroll-area">
@@ -20,14 +22,14 @@ function Home({ onNav, onToast }) {
       </div>
       <div className="categories-section">
         <div className="categories-grid">{CATEGORIES.map((cat) =>
-            <button key={cat.label} className="category-btn" style={{ background: cat.bg }} onClick={() => onNav("market")}>{cat.icon}
+            <button key={cat.label} className="category-btn" style={{ background: cat.bg }} onClick={() => navigate("/marketplace")}>{cat.icon}
               <span className="cat-label">{cat.label}</span>
             </button>)}</div>
       </div>
       <div className="trending-section">
         <div className="section-header">
           <h3 className="section-title">Trending in Campus</h3>
-          <button className="see-all-btn" onClick={() => onNav("market")}>SEE ALL</button>
+          <button className="see-all-btn" onClick={() => navigate("/marketplace")}>SEE ALL</button>
         </div>
         <div className="trending-scroll">{TRENDING_ITEMS.map((item) =>
             <div key={item.id} className="trending-card">
@@ -60,7 +62,7 @@ function Home({ onNav, onToast }) {
           </div>)}<div style={{ height: 16 }} />
       </div>
     </div>
-    <BottomNav active="home" onNav={onNav} />
+    <BottomNav active="home" />
   </div>;
 }
 

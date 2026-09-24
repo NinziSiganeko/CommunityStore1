@@ -1,11 +1,11 @@
-import AppRoutes from "../routes/AppRoutes.jsx";
 import { Toast } from "../components/Feedback.jsx";
+import { Outlet } from "react-router-dom";
 
-function MainLayout({ screen, toast, onNav, onToast }) {
+function MainLayout({ toast }) {
   return <main className="site-shell">
     <div className="screen-wrapper">
       {toast && <Toast message={toast} key={toast + Date.now()} />}
-      <AppRoutes screen={screen} onNav={onNav} onToast={onToast} />
+      <Outlet />
     </div>
   </main>;
 }
