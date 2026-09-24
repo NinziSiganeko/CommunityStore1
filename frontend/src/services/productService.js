@@ -1,8 +1,4 @@
-import axios from "axios";
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080",
-});
+import apiClient from "./apiClient.js";
 
 const FALLBACK_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 400'%3E%3Crect width='600' height='400' fill='%23e2e8f0'/%3E%3Ctext x='300' y='210' text-anchor='middle' fill='%2364758b' font-family='Arial' font-size='28'%3ECommunity Store%3C/text%3E%3C/svg%3E";
@@ -44,12 +40,12 @@ function mapProduct(product) {
 }
 
 async function getProducts() {
-  const response = await api.get("/products");
+  const response = await apiClient.get("/products");
   return response.data.map(mapProduct);
 }
 
 async function getProductById(id) {
-  const response = await api.get(`/products/${id}`);
+  const response = await apiClient.get(`/products/${id}`);
   return mapProduct(response.data);
 }
 
