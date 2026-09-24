@@ -1,15 +1,43 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge, Rating } from "../components/Icons.jsx";
 import { BottomNav, TopBar } from "../components/Navigation.jsx";
-import { PRODUCTS } from "../utils/data.jsx";
+import { getProductById } from "../services/productService.js";
 
 function ProductDetails({ onToast }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const product = PRODUCTS.find((item) => String(item.id) === id);
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  if (!product) {
-    return <div className="screen"><TopBar onBell={() => onToast("No new notifications")} /><div className="route-state"><h1>Product not found</h1><button onClick={() => navigate("/marketplace")}>Back to marketplace</button></div></div>;
+  useEffect(() => {
+    let active = true;
+    getProductById(id)
+      .then((item) => {
+        if (active) setProduct(item);
+      })
+      .catch((requestError) => {
+        if (active) {
+          setError(requestError.response?.status === 404
+            ? "Product not found"
+            : "We couldn't load this product. Please try again.");
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  if (loading || error || !product) {
+    return <div className="screen"><TopBar onBell={() => onToast("No new notifications")} /><div className="route-state">
+      <h1>{loading ? "Loading product..." : error || "Product not found"}</h1>
+      {!loading && <button onClick={() => navigate("/marketplace")}>Back to marketplace</button>}
+    </div></div>;
   }
 
   return <div className="screen">
