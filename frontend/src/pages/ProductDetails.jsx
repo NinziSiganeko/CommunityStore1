@@ -49,8 +49,17 @@ function ProductDetails({ onToast }) {
         {product.badge && <Badge type={product.badge} />}
         <h1>{product.name}</h1>
         <div className="product-detail-meta"><strong>{product.price}</strong><Rating value={product.rating} /></div>
-        <p>Verified campus seller listing. Arrange a safe exchange point or campus delivery after checkout.</p>
-        <button className="primary-action" onClick={() => onToast("Added to cart")}>Add to cart</button>
+        <div className="product-detail-info">
+          <div><span>Category</span><strong>{product.category || "Uncategorized"}</strong></div>
+          <div><span>Seller</span><strong>{product.seller || "Community seller"}</strong></div>
+          <div><span>Availability</span><strong className={product.stock > 0 ? "in-stock" : "out-of-stock"}>
+            {product.stock > 0 ? `${product.stock} available` : "Out of stock"}
+          </strong></div>
+        </div>
+        <p>Arrange a safe exchange point or campus delivery with the seller after checkout.</p>
+        <button className="primary-action" disabled={product.stock < 1} onClick={() => onToast("Added to cart")}>
+          {product.stock > 0 ? "Add to cart" : "Out of stock"}
+        </button>
       </div>
     </div>
     <BottomNav />

@@ -24,6 +24,11 @@ function toImageSource(productImage) {
   return `data:image/jpeg;base64,${productImage}`;
 }
 
+function getSellerName(seller) {
+  if (!seller) return null;
+  return [seller.firstName, seller.lastName].filter(Boolean).join(" ") || seller.username || null;
+}
+
 function mapProduct(product) {
   return {
     id: product.productId,
@@ -34,6 +39,7 @@ function mapProduct(product) {
     img: toImageSource(product.productImage),
     stock: product.stock,
     category: product.category?.categoryName || null,
+    seller: getSellerName(product.seller),
   };
 }
 
