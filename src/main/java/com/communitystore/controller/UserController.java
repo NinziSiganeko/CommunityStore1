@@ -2,11 +2,9 @@ package com.communitystore.controller;
 
 import com.communitystore.domain.User;
 import com.communitystore.domain.UserStatus;
-import com.communitystore.security.JwtUtils;
 import com.communitystore.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,16 +28,13 @@ import java.util.Map;
 public class UserController {
 
     private final UserService users;
-    private final JwtUtils jwt;
     private final PasswordEncoder passwords;
 
     public UserController(
             UserService users,
-            JwtUtils jwt,
             PasswordEncoder passwords
     ) {
         this.users = users;
-        this.jwt = jwt;
         this.passwords = passwords;
     }
 
@@ -57,8 +52,8 @@ public class UserController {
     }
 
     /**
-     * Authenticates a user and returns the JWT plus the basic user profile
-     * information needed by the frontend header and dashboard links.
+     * Checks the password and returns basic profile information for the
+     * frontend. Requests are not authenticated after this response.
      */
     @PostMapping("/signin")
     public Map<String, Object> signIn(@RequestBody Map<String, String> credentials) {
@@ -88,13 +83,7 @@ public class UserController {
             );
         }
 
-        String token = jwt.generateToken(
-                user.getEmail(),
-                user.getUserType().name()
-        );
-
         Map<String, Object> response = new HashMap<>();
-        response.put("token", token);
         response.put("userId", user.getUserId());
         response.put("email", user.getEmail());
         response.put("firstName", user.getFirstName());

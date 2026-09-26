@@ -57,6 +57,11 @@ function Sell({ onToast }) {
             return;
         }
 
+        if (!user?.userId) {
+            setError("Please sign in again before creating a listing.");
+            return;
+        }
+
         if (!Number.isFinite(price) || price <= 0) {
             setError("Price must be greater than R0.00.");
             return;
@@ -81,24 +86,16 @@ function Sell({ onToast }) {
                 stock,
                 categoryName: form.categoryName,
                 productImage: form.productImage,
+                sellerId: user?.userId,
             });
 
             setForm(INITIAL_FORM);
             onToast("Your item has been listed successfully.");
             navigate("/marketplace", { replace: true });
         } catch (requestError) {
-            if (requestError.response?.status === 401) {
-                setError("Your session has expired. Please sign in again.");
-                return;
-            }
-
-            if (requestError.response?.status === 403) {
-                setError("Your account is not currently allowed to create listings.");
-                return;
-            }
-
             setError(
                 requestError.response?.data?.message ||
+                requestError.message ||
                 "We couldn't create the listing. Please try again.",
             );
         } finally {

@@ -59,23 +59,29 @@ async function getProductById(id) {
 }
 
 // CommunityStore version of AnimeStore's AdminDashboard create-product flow.
-async function createProduct({ name, price, stock, categoryName, productImage }) {
+async function createProduct({ name, price, stock, categoryName, productImage, sellerId }) {
+  if (!Number.isSafeInteger(Number(sellerId)) || Number(sellerId) <= 0) {
+    throw new Error("A valid seller account is required to create a listing.");
+  }
+
   const categoriesResponse = await apiClient.get("/categories");
   const category = await findOrCreateCategory(categoryName, categoriesResponse.data);
+  if (!Number.isSafeInteger(Number(category?.categoryId)) || Number(category.categoryId) <= 0) {
+    throw new Error("A valid product category is required to create a listing.");
+  }
 
   const productFormData = new FormData();
   productFormData.append("name", name.trim());
   productFormData.append("price", String(price));
   productFormData.append("stock", String(stock));
   productFormData.append("category_Id", String(category.categoryId));
+  productFormData.append("sellerId", String(sellerId));
 
   if (productImage) {
     productFormData.append("productImage", productImage);
   }
 
-  const response = await apiClient.post("/products", productFormData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  const response = await apiClient.post("/products", productFormData);
 
   return response.data;
 }

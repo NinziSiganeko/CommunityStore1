@@ -8,7 +8,6 @@ import com.communitystore.service.ProductCategoryService;
 import com.communitystore.service.ProductService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,11 +42,8 @@ public class ProductController {
     }
 
     /**
-     * Creates a listing for the currently authenticated user.
-     *
-     * The seller is resolved from the JWT principal instead of trusting a
-     * sellerId sent by the browser. This prevents one user from creating a
-     * listing under another user's account.
+     * Creates a listing and associates it with the supplied seller account.
+     * Seller attribution is not access-controlled.
      */
     @PostMapping
     public ResponseEntity<Product> createProduct(
@@ -55,8 +51,8 @@ public class ProductController {
             @RequestParam double price,
             @RequestParam int stock,
             @RequestParam Long category_Id,
-            @RequestParam(required = false) MultipartFile productImage,
-            @AuthenticationPrincipal String authenticatedEmail
+            @RequestParam Long sellerId,
+            @RequestParam(required = false) MultipartFile productImage
     ) throws IOException {
 
         if (stock < 0) {
@@ -72,16 +68,9 @@ public class ProductController {
             return ResponseEntity.badRequest().build();
         }
 
-        if (authenticatedEmail == null || authenticatedEmail.isBlank()) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "Authenticated seller could not be identified"
-            );
-        }
-
-        User seller = userRepository.findByEmailIgnoreCase(authenticatedEmail)
+        User seller = userRepository.findById(sellerId)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
+                        HttpStatus.BAD_REQUEST,
                         "Seller account could not be found"
                 ));
 
