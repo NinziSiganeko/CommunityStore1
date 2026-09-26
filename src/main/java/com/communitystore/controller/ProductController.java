@@ -6,10 +6,20 @@ import com.communitystore.domain.User;
 import com.communitystore.repository.UserRepository;
 import com.communitystore.service.ProductCategoryService;
 import com.communitystore.service.ProductService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.List;
@@ -18,38 +28,65 @@ import java.util.List;
 @RequestMapping("/products")
 public class ProductController {
 
-    @Autowired
-    private ProductService productService;
+    private final ProductService productService;
+    private final ProductCategoryService categoryService;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private ProductCategoryService categoryService;
+    public ProductController(
+            ProductService productService,
+            ProductCategoryService categoryService,
+            UserRepository userRepository
+    ) {
+        this.productService = productService;
+        this.categoryService = categoryService;
+        this.userRepository = userRepository;
+    }
 
-    @Autowired
-    private UserRepository userRepository;
-
+    /**
+     * Creates a listing for the currently authenticated user.
+     *
+     * The seller is resolved from the JWT principal instead of trusting a
+     * sellerId sent by the browser. This prevents one user from creating a
+     * listing under another user's account.
+     */
     @PostMapping
     public ResponseEntity<Product> createProduct(
             @RequestParam String name,
             @RequestParam double price,
             @RequestParam int stock,
             @RequestParam Long category_Id,
-            @RequestParam(required = false) Long sellerId,
-            @RequestParam(required = false) MultipartFile productImage) throws IOException {
+            @RequestParam(required = false) MultipartFile productImage,
+            @AuthenticationPrincipal String authenticatedEmail
+    ) throws IOException {
 
-        // Validate stock
         if (stock < 0) {
             return ResponseEntity.badRequest().build();
         }
 
-        // 1. GET THE CATEGORY FROM DATABASE
+        if (price <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+
         ProductCategory category = categoryService.getById(category_Id);
         if (category == null) {
             return ResponseEntity.badRequest().build();
         }
 
-        // 2. CREATE PRODUCT WITH THE CATEGORY
+        if (authenticatedEmail == null || authenticatedEmail.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Authenticated seller could not be identified"
+            );
+        }
+
+        User seller = userRepository.findByEmailIgnoreCase(authenticatedEmail)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Seller account could not be found"
+                ));
+
         Product product = new Product.Builder()
-                .setName(name)
+                .setName(name.trim())
                 .setPrice(price)
                 .setStock(stock)
                 .setCategory(category)
@@ -58,70 +95,60 @@ public class ProductController {
         if (productImage != null && !productImage.isEmpty()) {
             product.setProductImage(productImage.getBytes());
         }
-        if (sellerId != null) {
-            User seller = userRepository.findById(sellerId)
-                    .orElseThrow(() -> new IllegalArgumentException("Seller not found"));
-            product.setSeller(seller);
-        }
 
-        // 3. SAVE PRODUCT
-        Product savedProduct = productService.create(product);
-        return ResponseEntity.ok(savedProduct);
+        product.setSeller(seller);
+
+        return ResponseEntity.ok(productService.create(product));
     }
 
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts() {
-        List<Product> products = productService.getAll();
-        return ResponseEntity.ok(products);
+        return ResponseEntity.ok(productService.getAll());
     }
 
-    // NEW: Get only available products (stock > 0)
     @GetMapping("/available")
     public ResponseEntity<List<Product>> getAvailableProducts() {
-        List<Product> availableProducts = productService.getAllAvailableProducts();
-        return ResponseEntity.ok(availableProducts);
+        return ResponseEntity.ok(productService.getAllAvailableProducts());
     }
 
-    // NEW: Get out of stock products
     @GetMapping("/out-of-stock")
     public ResponseEntity<List<Product>> getOutOfStockProducts() {
-        List<Product> outOfStockProducts = productService.getOutOfStockProducts();
-        return ResponseEntity.ok(outOfStockProducts);
+        return ResponseEntity.ok(productService.getOutOfStockProducts());
     }
 
-    // NEW: Get low stock products
     @GetMapping("/low-stock")
-    public ResponseEntity<List<Product>> getLowStockProducts(@RequestParam(defaultValue = "10") int threshold) {
-        List<Product> lowStockProducts = productService.getLowStockProducts(threshold);
-        return ResponseEntity.ok(lowStockProducts);
+    public ResponseEntity<List<Product>> getLowStockProducts(
+            @RequestParam(defaultValue = "10") int threshold
+    ) {
+        return ResponseEntity.ok(productService.getLowStockProducts(threshold));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) {
         Product product = productService.getById(id);
-        if (product != null) {
-            return ResponseEntity.ok(product);
-        }
-        return ResponseEntity.notFound().build();
+        return product != null
+                ? ResponseEntity.ok(product)
+                : ResponseEntity.notFound().build();
     }
 
-    // NEW: Check if product is available in specific quantity
     @GetMapping("/{id}/availability")
-    public ResponseEntity<Boolean> checkProductAvailability(@PathVariable Long id, @RequestParam int quantity) {
-        boolean isAvailable = productService.isProductAvailable(id, quantity);
-        return ResponseEntity.ok(isAvailable);
+    public ResponseEntity<Boolean> checkProductAvailability(
+            @PathVariable Long id,
+            @RequestParam int quantity
+    ) {
+        return ResponseEntity.ok(productService.isProductAvailable(id, quantity));
     }
 
-    // NEW: Get available stock for a product
     @GetMapping("/{id}/stock")
     public ResponseEntity<Integer> getProductStock(@PathVariable Long id) {
-        int stock = productService.getAvailableStock(id);
-        return ResponseEntity.ok(stock);
+        return ResponseEntity.ok(productService.getAvailableStock(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product) {
-        // For update, use builder to set the ID
+    public ResponseEntity<Product> updateProduct(
+            @PathVariable Long id,
+            @RequestBody Product product
+    ) {
         Product productToUpdate = new Product.Builder()
                 .setProductId(id)
                 .setName(product.getName())
@@ -131,43 +158,45 @@ public class ProductController {
                 .build();
 
         Product updatedProduct = productService.update(productToUpdate);
-        if (updatedProduct != null) {
-            return ResponseEntity.ok(updatedProduct);
-        }
-        return ResponseEntity.notFound().build();
+        return updatedProduct != null
+                ? ResponseEntity.ok(updatedProduct)
+                : ResponseEntity.notFound().build();
     }
 
-    // NEW: Update stock endpoint
     @PutMapping("/{id}/stock")
-    public ResponseEntity<Product> updateProductStock(@PathVariable Long id, @RequestParam int stock) {
+    public ResponseEntity<Product> updateProductStock(
+            @PathVariable Long id,
+            @RequestParam int stock
+    ) {
         try {
             Product updatedProduct = productService.updateStock(id, stock);
-            if (updatedProduct != null) {
-                return ResponseEntity.ok(updatedProduct);
-            }
-            return ResponseEntity.notFound().build();
+            return updatedProduct != null
+                    ? ResponseEntity.ok(updatedProduct)
+                    : ResponseEntity.notFound().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
-    // NEW: Decrease stock endpoint (for orders)
     @PutMapping("/{id}/decrease-stock")
-    public ResponseEntity<Product> decreaseProductStock(@PathVariable Long id, @RequestParam int quantity) {
+    public ResponseEntity<Product> decreaseProductStock(
+            @PathVariable Long id,
+            @RequestParam int quantity
+    ) {
         try {
-            Product updatedProduct = productService.decreaseStock(id, quantity);
-            return ResponseEntity.ok(updatedProduct);
+            return ResponseEntity.ok(productService.decreaseStock(id, quantity));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(null);
         }
     }
 
-    // NEW: Increase stock endpoint
     @PutMapping("/{id}/increase-stock")
-    public ResponseEntity<Product> increaseProductStock(@PathVariable Long id, @RequestParam int quantity) {
+    public ResponseEntity<Product> increaseProductStock(
+            @PathVariable Long id,
+            @RequestParam int quantity
+    ) {
         try {
-            Product updatedProduct = productService.increaseStock(id, quantity);
-            return ResponseEntity.ok(updatedProduct);
+            return ResponseEntity.ok(productService.increaseStock(id, quantity));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(null);
         }
@@ -175,10 +204,8 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        boolean deleted = productService.delete(id);
-        if (deleted) {
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.notFound().build();
+        return productService.delete(id)
+                ? ResponseEntity.ok().build()
+                : ResponseEntity.notFound().build();
     }
 }

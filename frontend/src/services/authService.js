@@ -9,20 +9,42 @@ async function register(user) {
 }
 
 async function signIn(email, password) {
-  const response = await apiClient.post("/users/signin", { email, password });
+  const response = await apiClient.post("/users/signin", {
+    email: email.trim(),
+    password,
+  });
+
   const session = response.data;
+  const firstName = session.firstName || "";
+  const lastName = session.lastName || "";
+  const displayName =
+      [firstName, lastName].filter(Boolean).join(" ") ||
+      session.username ||
+      session.email?.split("@")[0] ||
+      "User";
+
   localStorage.setItem(TOKEN_KEY, session.token);
-  localStorage.setItem(USER_KEY, JSON.stringify({
-    userId: session.userId,
-    email: session.email,
-    role: session.role,
-  }));
+  localStorage.setItem(
+      USER_KEY,
+      JSON.stringify({
+        userId: session.userId,
+        username: session.username || "",
+        email: session.email,
+        role: session.role,
+        firstName,
+        lastName,
+        displayName,
+        verified: Boolean(session.verified),
+      }),
+  );
+
   return session;
 }
 
 function getCurrentUser() {
   const storedUser = localStorage.getItem(USER_KEY);
   if (!storedUser) return null;
+
   try {
     return JSON.parse(storedUser);
   } catch {

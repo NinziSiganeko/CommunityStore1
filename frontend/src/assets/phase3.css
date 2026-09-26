@@ -1,0 +1,223 @@
+/* Phase 3 authentication and selling UI */
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+    min-width: 0;
+}
+
+.auth-login-btn,
+.auth-register-btn,
+.auth-user-link,
+.auth-logout-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border-radius: 9px;
+    padding: 7px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.auth-login-btn {
+    color: #1D4ED8;
+    border: 1px solid #BFDBFE;
+    background: #EFF6FF;
+}
+
+.auth-register-btn {
+    color: #ffffff;
+    background: #2563EB;
+    border: 1px solid #2563EB;
+}
+
+.auth-user-link {
+    color: #1D4ED8;
+    border: 1px solid #DBEAFE;
+    background: #F8FAFC;
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.auth-logout-btn {
+    color: #B91C1C;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+}
+
+.auth-login-btn:hover,
+.auth-register-btn:hover,
+.auth-user-link:hover,
+.auth-logout-btn:hover {
+    opacity: 0.88;
+}
+
+.auth-screen {
+    min-height: 100vh;
+}
+
+.search-bar-button {
+    width: 100%;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+}
+
+.search-bar-button:hover {
+    opacity: 0.97;
+}
+
+.auth-icon {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 14px;
+    border-radius: 16px;
+    color: #1D4ED8;
+    background: #DBEAFE;
+    font-size: 22px;
+}
+
+.auth-content-wide {
+    width: min(100%, 620px);
+}
+
+.auth-submit {
+    width: 100%;
+    min-height: 44px;
+}
+
+.auth-form {
+    gap: 15px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.auth-form input:disabled,
+.auth-form select:disabled,
+.sell-form input:disabled {
+    background: #F1F5F9;
+    cursor: not-allowed;
+}
+
+.sell-content {
+    max-width: 760px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.sell-header h1 {
+    margin: 2px 0 6px;
+    color: #0F172A;
+    font-size: 26px;
+}
+
+.sell-header p {
+    margin: 0 0 16px;
+    color: #64748B;
+}
+
+.seller-summary {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    background: #EFF6FF;
+    color: #334155;
+    border: 1px solid #DBEAFE;
+}
+
+.seller-summary .bi {
+    color: #2563EB;
+    font-size: 20px;
+}
+
+.sell-form {
+    display: grid;
+    gap: 15px;
+    padding: 18px;
+    background: #ffffff;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    box-shadow: 0 5px 20px rgba(15, 23, 42, 0.05);
+}
+
+.sell-form label {
+    display: grid;
+    gap: 6px;
+    color: #334155;
+    font-weight: 600;
+}
+
+.sell-form input {
+    width: 100%;
+    border: 1px solid #CBD5E1;
+    border-radius: 10px;
+    padding: 11px 12px;
+    font: inherit;
+    font-weight: 400;
+}
+
+.sell-form input:focus {
+    outline: 2px solid #93C5FD;
+    border-color: #2563EB;
+}
+
+.sell-form small {
+    color: #64748B;
+    font-weight: 400;
+    font-size: 11px;
+}
+
+@media (max-width: 760px) {
+    .auth-user-link span,
+    .auth-logout-btn span {
+        display: none;
+    }
+
+    .auth-user-link,
+    .auth-logout-btn,
+    .auth-login-btn,
+    .auth-register-btn {
+        padding: 7px 8px;
+    }
+}
+
+@media (max-width: 560px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .topbar {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .topbar-title {
+        font-size: 14px;
+    }
+
+    .topbar-actions {
+        gap: 4px;
+    }
+
+    .auth-login-btn,
+    .auth-register-btn {
+        font-size: 10px;
+        padding: 6px 7px;
+    }
+}
