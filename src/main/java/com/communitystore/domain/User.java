@@ -23,16 +23,6 @@ public class User {
     private Long userId;
 
 
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must contain between 3 and 50 characters")
-    @Column(
-            nullable = false,
-            unique = true,
-            length = 50
-    )
-    private String username;
-
-
     @JsonIgnore
     @NotBlank(message = "Password is required")
     @Size(min = 8, max = 100, message = "Password must contain between 8 and 100 characters")
@@ -100,7 +90,6 @@ public class User {
             String email
     ) {
         this.userId = userId;
-        this.username = username;
         this.password = password;
         this.email = email;
     }
@@ -111,14 +100,6 @@ public class User {
 
     public void setUserId(Long userId) {
         this.userId = userId;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
     }
 
     public String getPassword() {
@@ -196,8 +177,7 @@ public class User {
     @Override
     public String toString() {
         return "User{" +
-                "userId=" + userId +
-                ", username='" + username + '\'' +
+                "userId=" + userId + '\'' +
                 ", email='" + email + '\'' +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +

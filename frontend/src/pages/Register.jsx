@@ -4,7 +4,6 @@ import { isAuthenticated, register } from "../services/authService.js";
 import { TopBar } from "../components/Navigation.jsx";
 
 const INITIAL_FORM = {
-  username: "",
   email: "",
   password: "",
   firstName: "",
@@ -67,10 +66,7 @@ function Register({ onToast }) {
 
       <form className="auth-form" onSubmit={submit}>
         <div className="form-row">
-          <label>
-            Username
-            <input name="username" value={form.username} onChange={updateField} minLength="3" maxLength="50" required disabled={submitting} />
-          </label>
+
           <label>
             Account type
             <select name="userType" value={form.userType} onChange={updateField} disabled={submitting}>

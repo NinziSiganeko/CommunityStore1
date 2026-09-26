@@ -96,7 +96,6 @@ public class UserController {
         Map<String, Object> response = new HashMap<>();
         response.put("token", token);
         response.put("userId", user.getUserId());
-        response.put("username", user.getUsername());
         response.put("email", user.getEmail());
         response.put("firstName", user.getFirstName());
         response.put("lastName", user.getLastName());
