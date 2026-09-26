@@ -1,20 +1,28 @@
-import { useRef, useState } from "react";
-import { BrowserRouter } from "react-router-dom";
-import AppRoutes from "./routes/AppRoutes.jsx";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Profile from "./pages/Profile";
+import ProductDetails from "./pages/ProductDetails";
+import Message from "./pages/Message";
+import ChatList from "./pages/ChatList";
+import "./styles/CommunityStore.css";
+import PersonalInformation from "./pages/PersonalInformation";
+import PaymentMethods from "./pages/PaymentMethods";
 
 function App() {
-  const [toast, setToast] = useState(null);
-  const toastTimer = useRef(null);
-
-  function showToast(message) {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast(message);
-    toastTimer.current = setTimeout(() => setToast(null), 2200);
-  }
-
-  return <BrowserRouter>
-    <AppRoutes toast={toast} onToast={showToast} />
-  </BrowserRouter>;
+  return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/product" element={<ProductDetails />} />
+          <Route path="/message" element={<Message />} />
+          <Route path="/chat" element={<ChatList />} />
+          <Route path="/sell" element={<Home />} />
+          <Route path="/personal-information" element={<PersonalInformation />} />
+          <Route path="/payment-methods" element={<PaymentMethods />} />
+        </Routes>
+      </BrowserRouter>
+  );
 }
 
 export default App;
