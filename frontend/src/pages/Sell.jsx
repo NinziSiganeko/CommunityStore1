@@ -120,7 +120,9 @@ function Sell({ onToast }) {
 
             <div className="seller-summary">
                 <i className="bi bi-person-circle" />
-                <span>Listing as <strong>{user?.displayName || user?.username || "Community seller"}</strong></span>
+                <span>
+                 Listing as <strong>{user?.displayName || "Community seller"}</strong>
+               </span>
             </div>
 
             <form className="sell-form" onSubmit={submit} encType="multipart/form-data">

@@ -1,11 +1,12 @@
 import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080",
+  baseURL: "http://localhost:8080",
 });
 
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("communityStoreToken");
+apiClient.interceptors.request.use(
+    (config) => {
+  const token = localStorage.getItem("userToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -16,8 +17,8 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("communityStoreToken");
-      localStorage.removeItem("communityStoreUser");
+        localStorage.clear();
+        window.location.href = "/signin";
     }
     return Promise.reject(error);
   },
