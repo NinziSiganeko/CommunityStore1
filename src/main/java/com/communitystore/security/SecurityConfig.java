@@ -1,12 +1,9 @@
 package com.communitystore.security;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -14,94 +11,59 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
+import java.util.Arrays;
 
 @Configuration
-@EnableWebSecurity
 public class SecurityConfig {
 
-    /*
-     * The frontend origin is read from application.properties.
-     *
-     * Local development:
-     * http://localhost:5173
-     */
-    @Value("${app.cors.allowed-origin:http://localhost:5173}")
-    private String allowedOrigin;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
 
     /**
-     * Global CORS configuration.
+     * BCrypt password encoder.
      *
-     * We keep CORS here instead of adding separate @CrossOrigin
-     * annotations to individual controllers.
+     * This is used when registering users so that passwords
+     * are not stored as plain text in the database.
      */
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-
-        CorsConfiguration configuration = new CorsConfiguration();
-
-        /*
-         * Allow the configured React/Vite frontend.
-         */
-        configuration.setAllowedOrigins(List.of(allowedOrigin));
-
-        /*
-         * HTTP methods used by Community Store.
-         */
-        configuration.setAllowedMethods(List.of(
-                "GET",
-                "POST",
-                "PUT",
-                "DELETE",
-                "OPTIONS"
-        ));
-
-        /*
-         * Headers required by Axios and JWT authentication.
-         */
-        configuration.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type"
-        ));
-
-        /*
-         * Register the configuration for every endpoint.
-         */
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
-        source.registerCorsConfiguration(
-                "/**",
-                configuration
-        );
-
-        return source;
+    public org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
+        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
     }
 
     /**
      * Main Spring Security configuration.
+     *
+     * This follows the same basic approach used in AnimeStore:
+     * - CSRF disabled for our REST API
+     * - CORS enabled
+     * - Stateless JWT authentication
+     * - Public registration/login
+     * - Public marketplace browsing
+     * - JWT required for protected functionality
      */
     @Bean
-    SecurityFilterChain securityFilterChain(
-            HttpSecurity http,
-            JwtAuthenticationFilter jwtFilter
-    ) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        return http
-
+        http
                 /*
-                 * JWT authentication is being used instead of
-                 * session-based authentication.
+                 * CommunityStore is using JWT rather than
+                 * browser sessions, so CSRF is disabled for now.
                  */
                 .csrf(csrf -> csrf.disable())
 
                 /*
-                 * Use the global CORS configuration above.
+                 * Use our CORS configuration below.
                  */
-                .cors(Customizer.withDefaults())
+                .cors(cors ->
+                        cors.configurationSource(corsConfigurationSource())
+                )
 
                 /*
-                 * No server-side login sessions.
+                 * No server-side sessions.
+                 * Authentication is handled using JWT.
                  */
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
@@ -112,17 +74,16 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         /*
-                         * Registration and login must work without
-                         * an existing JWT.
+                         * Registration and login must be available
+                         * before a user has a JWT.
                          */
                         .requestMatchers(
                                 "/users/register",
-                                "/users/signin",
-                                "/actuator/health"
+                                "/users/signin"
                         ).permitAll()
 
                         /*
-                         * Browser CORS preflight requests.
+                         * Allow browser CORS preflight requests.
                          */
                         .requestMatchers(
                                 HttpMethod.OPTIONS,
@@ -130,7 +91,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         /*
-                         * Anyone may browse products and categories.
+                         * Marketplace browsing is public.
                          */
                         .requestMatchers(
                                 HttpMethod.GET,
@@ -139,17 +100,8 @@ public class SecurityConfig {
                         ).permitAll()
 
                         /*
-                         * Administrative user-management operations.
-                         */
-                        .requestMatchers(
-                                "/users/*/verify-vendor",
-                                "/users/*/status",
-                                "/users"
-                        ).hasRole("ADMIN")
-
-                        /*
-                         * Authenticated community members may create
-                         * marketplace listings.
+                         * Creating marketplace listings requires
+                         * a logged-in CommunityStore user.
                          */
                         .requestMatchers(
                                 HttpMethod.POST,
@@ -163,20 +115,97 @@ public class SecurityConfig {
                         )
 
                         /*
+                         * User administration remains restricted
+                         * to administrators.
+                         */
+                        .requestMatchers(
+                                "/users/*/verify-vendor",
+                                "/users/*/status",
+                                "/users"
+                        ).hasRole("ADMIN")
+
+                        /*
                          * Everything else requires authentication.
                          */
                         .anyRequest().authenticated()
                 )
 
                 /*
-                 * JWT must run before Spring's normal username/password
+                 * Process JWT before Spring's normal username/password
                  * authentication filter.
                  */
                 .addFilterBefore(
-                        jwtFilter,
+                        jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
-                )
+                );
 
-                .build();
+        return http.build();
+    }
+
+    /**
+     * CORS configuration.
+     *
+     * This follows the same simple approach used by AnimeStore.
+     *
+     * CommunityStore is currently running on port 5174,
+     * so both 5173 and 5174 are allowed during development.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        /*
+         * Allow both common Vite development ports.
+         *
+         * 5173 = normal Vite port
+         * 5174 = the port CommunityStore is currently using
+         */
+        configuration.setAllowedOrigins(
+                Arrays.asList(
+                        "http://localhost:5173",
+                        "http://localhost:5174"
+                )
+        );
+
+        /*
+         * Same methods used by AnimeStore.
+         */
+        configuration.setAllowedMethods(
+                Arrays.asList(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "DELETE",
+                        "OPTIONS"
+                )
+        );
+
+        /*
+         * AnimeStore allows all request headers.
+         *
+         * This is useful for CommunityStore because Axios
+         * will eventually send:
+         *
+         * Authorization: Bearer <JWT>
+         */
+        configuration.setAllowedHeaders(
+                Arrays.asList("*")
+        );
+
+        /*
+         * Allow credentials for frontend/backend communication.
+         */
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration(
+                "/**",
+                configuration
+        );
+
+        return source;
     }
 }
