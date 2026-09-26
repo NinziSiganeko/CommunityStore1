@@ -20,49 +20,163 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    /*
+     * The frontend origin is read from application.properties.
+     *
+     * Local development:
+     * http://localhost:5173
+     */
     @Value("${app.cors.allowed-origin:http://localhost:5173}")
     private String allowedOrigin;
 
+    /**
+     * Global CORS configuration.
+     *
+     * We keep CORS here instead of adding separate @CrossOrigin
+     * annotations to individual controllers.
+     */
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+
+        /*
+         * Allow the configured React/Vite frontend.
+         */
+        configuration.setAllowedOrigins(List.of(allowedOrigin));
+
+        /*
+         * HTTP methods used by Community Store.
+         */
+        configuration.setAllowedMethods(List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS"
+        ));
+
+        /*
+         * Headers required by Axios and JWT authentication.
+         */
+        configuration.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type"
+        ));
+
+        /*
+         * Register the configuration for every endpoint.
+         */
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration(
+                "/**",
+                configuration
+        );
+
         return source;
     }
 
+    /**
+     * Main Spring Security configuration.
+     */
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             JwtAuthenticationFilter jwtFilter
     ) throws Exception {
+
         return http
+
+                /*
+                 * JWT authentication is being used instead of
+                 * session-based authentication.
+                 */
                 .csrf(csrf -> csrf.disable())
+
+                /*
+                 * Use the global CORS configuration above.
+                 */
                 .cors(Customizer.withDefaults())
+
+                /*
+                 * No server-side login sessions.
+                 */
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
                 )
+
                 .authorizeHttpRequests(auth -> auth
+
+                        /*
+                         * Registration and login must work without
+                         * an existing JWT.
+                         */
                         .requestMatchers(
                                 "/users/register",
                                 "/users/signin",
                                 "/actuator/health"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/products/**", "/categories/**").permitAll()
+
+                        /*
+                         * Browser CORS preflight requests.
+                         */
+                        .requestMatchers(
+                                HttpMethod.OPTIONS,
+                                "/**"
+                        ).permitAll()
+
+                        /*
+                         * Anyone may browse products and categories.
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/products/**",
+                                "/categories/**"
+                        ).permitAll()
+
+                        /*
+                         * Administrative user-management operations.
+                         */
                         .requestMatchers(
                                 "/users/*/verify-vendor",
                                 "/users/*/status",
                                 "/users"
                         ).hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/products/**")
-                        .hasAnyRole("ADMIN", "STUDENT", "FACULTY", "VENDOR", "RESIDENT")
+
+                        /*
+                         * Authenticated community members may create
+                         * marketplace listings.
+                         */
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/products/**"
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "STUDENT",
+                                "FACULTY",
+                                "VENDOR",
+                                "RESIDENT"
+                        )
+
+                        /*
+                         * Everything else requires authentication.
+                         */
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+
+                /*
+                 * JWT must run before Spring's normal username/password
+                 * authentication filter.
+                 */
+                .addFilterBefore(
+                        jwtFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                )
+
                 .build();
     }
 }

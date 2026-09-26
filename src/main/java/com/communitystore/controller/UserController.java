@@ -27,7 +27,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/users")
-@CrossOrigin(origins = "${app.cors.allowed-origin:http://localhost:5173}")
 public class UserController {
 
     private final UserService users;
