@@ -1,6 +1,6 @@
 package com.communitystore.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,7 +13,6 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-
 @Entity
 @Table(name = "users")
 public class User {
@@ -22,16 +21,26 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
-
-    @JsonIgnore
+    /**
+     * Password is write-only for JSON.
+     *
+     * This means:
+     * - Frontend CAN send the password when registering.
+     * - Backend CAN read it using getPassword().
+     * - Backend will NOT return the password in JSON responses.
+     */
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @NotBlank(message = "Password is required")
-    @Size(min = 8, max = 100, message = "Password must contain between 8 and 100 characters")
+    @Size(
+            min = 8,
+            max = 100,
+            message = "Password must contain between 8 and 100 characters"
+    )
     @Column(
             nullable = false,
             length = 100
     )
     private String password;
-
 
     @NotBlank(message = "Email is required")
     @Email(message = "Please provide a valid email address")
@@ -42,22 +51,33 @@ public class User {
     )
     private String email;
 
-    @Size(max = 50, message = "First name cannot exceed 50 characters")
+    @Size(
+            max = 50,
+            message = "First name cannot exceed 50 characters"
+    )
     @Column(length = 50)
     private String firstName;
 
-    @Size(max = 50, message = "Last name cannot exceed 50 characters")
+    @Size(
+            max = 50,
+            message = "Last name cannot exceed 50 characters"
+    )
     @Column(length = 50)
     private String lastName;
 
-    @Size(max = 20, message = "Phone number cannot exceed 20 characters")
+    @Size(
+            max = 20,
+            message = "Phone number cannot exceed 20 characters"
+    )
     @Column(length = 20)
     private String phoneNumber;
 
-    @Size(max = 255, message = "Address cannot exceed 255 characters")
+    @Size(
+            max = 255,
+            message = "Address cannot exceed 255 characters"
+    )
     @Column(length = 255)
     private String address;
-
 
     @Enumerated(EnumType.STRING)
     @Column(
@@ -66,10 +86,8 @@ public class User {
     )
     private UserType userType = UserType.RESIDENT;
 
-
     @Column(nullable = false)
     private boolean verified = false;
-
 
     @Enumerated(EnumType.STRING)
     @Column(
@@ -78,14 +96,20 @@ public class User {
     )
     private UserStatus accountStatus = UserStatus.ACTIVE;
 
-
+    /**
+     * JPA requires a protected no-argument constructor.
+     */
     protected User() {
     }
 
-
+    /**
+     * Constructor without username.
+     *
+     * Username has been removed because email is now
+     * the user's unique login identifier.
+     */
     public User(
             Long userId,
-            String username,
             String password,
             String email
     ) {
@@ -177,7 +201,7 @@ public class User {
     @Override
     public String toString() {
         return "User{" +
-                "userId=" + userId + '\'' +
+                "userId=" + userId +
                 ", email='" + email + '\'' +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
@@ -187,3 +211,4 @@ public class User {
                 '}';
     }
 }
+
