@@ -15,19 +15,36 @@ function formatPrice(price) {
 }
 
 function toImageSource(productImage) {
-  if (!productImage) return FALLBACK_IMAGE;
-  if (typeof productImage !== "string") return FALLBACK_IMAGE;
-  if (productImage.startsWith("data:") || productImage.startsWith("http")) {
+  if (!productImage) {
+    return FALLBACK_IMAGE;
+  }
+
+  if (typeof productImage !== "string") {
+    return FALLBACK_IMAGE;
+  }
+
+  if (
+      productImage.startsWith("data:") ||
+      productImage.startsWith("http")
+  ) {
     return productImage;
   }
+
   return `data:image/jpeg;base64,${productImage}`;
 }
 
 function getSellerName(seller) {
-  if (!seller) return null;
+  if (!seller) {
+    return null;
+  }
+
   return (
-      [seller.firstName, seller.lastName].filter(Boolean).join(" ") ||
-      seller.username ||
+      [
+        seller.firstName,
+        seller.lastName,
+      ]
+          .filter(Boolean)
+          .join(" ") ||
       seller.email ||
       null
   );
@@ -40,50 +57,164 @@ function mapProduct(product) {
     price: formatPrice(product.price),
     rating: null,
     badge: null,
-    img: toImageSource(product.productImage),
+    img: toImageSource(
+        product.productImage,
+    ),
     stock: product.stock,
-    category: product.category?.categoryName || null,
-    seller: getSellerName(product.seller),
+    category:
+        product.category?.categoryName ||
+        null,
+
+    seller:
+        getSellerName(product.seller),
+
+    sellerUserId:
+        product.seller?.userId ||
+        null,
+
+    sellerUserType:
+        product.seller?.userType ||
+        null,
   };
 }
 
-// Same principle as AnimeStore's Catalog: only display products with stock > 0.
+/**
+ * Products shown in the marketplace.
+ *
+ * Only products with stock > 0 are shown.
+ */
 async function getProducts() {
-  const response = await apiClient.get("/products/available");
-  return response.data.map(mapProduct);
+  const response =
+      await apiClient.get(
+          "/products/available",
+      );
+
+  return response.data.map(
+      mapProduct,
+  );
+}
+
+/**
+ * Get every product.
+ *
+ * Used by Profile so a user's
+ * sold-out listings can still
+ * appear under My Listings.
+ */
+async function getAllProducts() {
+  const response =
+      await apiClient.get("/products");
+
+  return response.data.map(
+      mapProduct,
+  );
 }
 
 async function getProductById(id) {
-  const response = await apiClient.get(`/products/${id}`);
-  return mapProduct(response.data);
+  const response =
+      await apiClient.get(
+          `/products/${id}`,
+      );
+
+  return mapProduct(
+      response.data,
+  );
 }
 
-// CommunityStore version of AnimeStore's AdminDashboard create-product flow.
-async function createProduct({ name, price, stock, categoryName, productImage, sellerId }) {
-  if (!Number.isSafeInteger(Number(sellerId)) || Number(sellerId) <= 0) {
-    throw new Error("A valid seller account is required to create a listing.");
+async function createProduct({
+                               name,
+                               price,
+                               stock,
+                               categoryName,
+                               productImage,
+                               sellerId,
+                             }) {
+  if (
+      !Number.isSafeInteger(
+          Number(sellerId),
+      ) ||
+      Number(sellerId) <= 0
+  ) {
+    throw new Error(
+        "A valid seller account is required to create a listing.",
+    );
   }
 
-  const categoriesResponse = await apiClient.get("/categories");
-  const category = await findOrCreateCategory(categoryName, categoriesResponse.data);
-  if (!Number.isSafeInteger(Number(category?.categoryId)) || Number(category.categoryId) <= 0) {
-    throw new Error("A valid product category is required to create a listing.");
+  const categoriesResponse =
+      await apiClient.get(
+          "/categories",
+      );
+
+  const category =
+      await findOrCreateCategory(
+          categoryName,
+          categoriesResponse.data,
+      );
+
+  if (
+      !Number.isSafeInteger(
+          Number(
+              category?.categoryId,
+          ),
+      ) ||
+      Number(category.categoryId) <=
+      0
+  ) {
+    throw new Error(
+        "A valid product category is required to create a listing.",
+    );
   }
 
-  const productFormData = new FormData();
-  productFormData.append("name", name.trim());
-  productFormData.append("price", String(price));
-  productFormData.append("stock", String(stock));
-  productFormData.append("category_Id", String(category.categoryId));
-  productFormData.append("sellerId", String(sellerId));
+  const productFormData =
+      new FormData();
+
+  productFormData.append(
+      "name",
+      name.trim(),
+  );
+
+  productFormData.append(
+      "price",
+      String(price),
+  );
+
+  productFormData.append(
+      "stock",
+      String(stock),
+  );
+
+  productFormData.append(
+      "category_Id",
+      String(
+          category.categoryId,
+      ),
+  );
+
+  productFormData.append(
+      "sellerId",
+      String(sellerId),
+  );
 
   if (productImage) {
-    productFormData.append("productImage", productImage);
+    productFormData.append(
+        "productImage",
+        productImage,
+    );
   }
 
-  const response = await apiClient.post("/products", productFormData);
+  const response =
+      await apiClient.post(
+          "/products",
+          productFormData,
+      );
 
   return response.data;
 }
 
-export { createProduct, getProductById, getProducts, mapProduct };
+export {
+  createProduct,
+  getAllProducts,
+  getProductById,
+  getProducts,
+  mapProduct,
+};
