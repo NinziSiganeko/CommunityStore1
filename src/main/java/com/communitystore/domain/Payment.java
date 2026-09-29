@@ -129,8 +129,9 @@ public class Payment {
             this.customerOrder = payment.customerOrder;
             return this;
         }
+
         public Payment build() {
             return new Payment(this);
         }
     }
-}
+}//end of class
