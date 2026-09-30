@@ -7,22 +7,30 @@ import com.communitystore.domain.OrderItem;
 import com.communitystore.factory.CustomerOrderFactory;
 import com.communitystore.service.ICustomerOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/orders")
-@CrossOrigin(origins = "http://localhost:3000") // Add CORS for frontend
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 public class CustomerOrderController {
 
     @Autowired
     private ICustomerOrderService orderService;
 
-    // NEW: Create order using factory pattern (recommended)
+    /**
+     * Creates an order from checkout details.
+     *
+     * Returns a JSON message on failure so the checkout screen can
+     * tell the buyer exactly what went wrong (for example an item
+     * that sold out while they were paying).
+     */
     @PostMapping("/create")
-    public ResponseEntity<CustomerOrder> createOrderFromDetails(@RequestBody OrderRequest request) {
+    public ResponseEntity<?> createOrderFromDetails(@RequestBody OrderRequest request) {
         try {
             System.out.println("Creating order for buyer: " +
                     (request.getBuyer() != null ? request.getBuyer().getUserId() : "null"));
@@ -39,11 +47,16 @@ public class CustomerOrderController {
             return ResponseEntity.ok(createdOrder);
         } catch (IllegalArgumentException e) {
             System.err.println(" Validation error creating order: " + e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(Map.of("message", String.valueOf(e.getMessage())));
+        } catch (RuntimeException e) {
+            // Stock problems are raised as RuntimeException by the service.
+            System.err.println(" Order could not be fulfilled: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", String.valueOf(e.getMessage())));
         } catch (Exception e) {
             System.err.println(" Error creating order: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "We couldn't place this order. Please try again."));
         }
     }
 

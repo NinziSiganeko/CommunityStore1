@@ -1,20 +1,30 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BottomNav, TopBar } from "../components/Navigation.jsx";
+import { Banner, StateMessage } from "../components/Feedback.jsx";
 import { createProduct } from "../services/productService.js";
 import { getCategories } from "../services/categoryService.js";
-import { getCurrentUser, isAuthenticated } from "../services/authService.js";
+import {
+    canSell,
+    getCurrentUser,
+    isAuthenticated,
+    isPendingVendor,
+} from "../services/authService.js";
+import { useToast } from "../context/ToastContext.jsx";
+import { PRODUCT_CONDITIONS } from "../utils/format.js";
 
 const INITIAL_FORM = {
     name: "",
     price: "",
     stock: "1",
+    condition: "GOOD",
     categoryName: "",
     productImage: null,
 };
 
-function Sell({ onToast }) {
+function Sell() {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [form, setForm] = useState(INITIAL_FORM);
     const [categories, setCategories] = useState([]);
     const [loadingCategories, setLoadingCategories] = useState(true);
@@ -77,6 +87,15 @@ function Sell({ onToast }) {
             return;
         }
 
+        if (!canSell(user)) {
+            setError(
+                isPendingVendor(user)
+                    ? "Your vendor account is still awaiting verification, so listings cannot be published yet."
+                    : "This account cannot publish listings at the moment.",
+            );
+            return;
+        }
+
         setSubmitting(true);
 
         try {
@@ -84,13 +103,14 @@ function Sell({ onToast }) {
                 name: form.name,
                 price,
                 stock,
+                condition: form.condition,
                 categoryName: form.categoryName,
                 productImage: form.productImage,
                 sellerId: user?.userId,
             });
 
             setForm(INITIAL_FORM);
-            onToast("Your item has been listed successfully.");
+            showToast("Your item has been listed successfully.");
             navigate("/marketplace", { replace: true });
         } catch (requestError) {
             setError(
@@ -104,7 +124,7 @@ function Sell({ onToast }) {
     }
 
     return <div className="screen">
-        <TopBar onBell={() => onToast("No new notifications")} />
+        <TopBar onBell={() => navigate("/notifications")} />
 
         <div className="scroll-area route-content sell-content">
             <div className="sell-header">
@@ -122,7 +142,34 @@ function Sell({ onToast }) {
                </span>
             </div>
 
-            <form className="sell-form" onSubmit={submit} encType="multipart/form-data">
+            {isPendingVendor(user) && (
+                <Banner
+                    tone="warning"
+                    icon="bi-hourglass-split"
+                    title="Verification needed before you can sell"
+                >
+                    Vendor accounts are reviewed by an admin. You can prepare
+                    this listing, but it cannot be published until your account
+                    is verified.
+                </Banner>
+            )}
+
+            {!canSell(user) && (
+                <StateMessage
+                    icon="bi-shield-lock"
+                    title="You cannot list items yet"
+                    message={
+                        isPendingVendor(user)
+                            ? "Waiting for admin verification. Check your profile for the current status."
+                            : "This account is not allowed to create listings."
+                    }
+                    actionLabel="Back to profile"
+                    onAction={() => navigate("/profile")}
+                />
+            )}
+
+            {canSell(user) && (
+                <form className="sell-form" onSubmit={submit} encType="multipart/form-data">
                 <label>
                     Product name
                     <input name="name" value={form.name} onChange={updateField} placeholder="e.g. Second-hand textbook" maxLength="150" required disabled={submitting} />
@@ -138,6 +185,25 @@ function Sell({ onToast }) {
                         <input name="stock" type="number" min="0" step="1" value={form.stock} onChange={updateField} required disabled={submitting} />
                     </label>
                 </div>
+
+                <label>
+                    Condition
+                    <select
+                        name="condition"
+                        value={form.condition}
+                        onChange={updateField}
+                        disabled={submitting}
+                    >
+                        {PRODUCT_CONDITIONS.map((condition) => (
+                            <option key={condition.value} value={condition.value}>
+                                {condition.label}
+                            </option>
+                        ))}
+                    </select>
+                    <small>
+                        Helps buyers know what to expect when they collect.
+                    </small>
+                </label>
 
                 <label>
                     Category
@@ -182,6 +248,7 @@ function Sell({ onToast }) {
                     {submitting ? "Publishing listing..." : "Publish Listing"}
                 </button>
             </form>
+            )}
         </div>
 
         <BottomNav active="sell" />

@@ -81,7 +81,16 @@ public class Helper {
 
     public static boolean isValidPaymentMethod(String paymentMethod) {
         if (isNullOrEmpty(paymentMethod)) return false;
-        String[] validMethods = {"CREDIT_CARD", "DEBIT_CARD", "PAYPAL", "BANK_TRANSFER", "CASH"};
+        String[] validMethods = {
+                "CREDIT_CARD",
+                "DEBIT_CARD",
+                "EFT",
+                "BANK_TRANSFER",
+                "CASH",
+                "PAYPAL",
+                "APPLE_PAY",
+                "GOOGLE_PAY"
+        };
         for (String method : validMethods) {
             if (method.equalsIgnoreCase(paymentMethod)) {
                 return true;
@@ -126,6 +135,16 @@ public class Helper {
         String timestamp = String.valueOf(System.currentTimeMillis());
         String random = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         return "ORD-" + timestamp.substring(timestamp.length() - 6) + "-" + random;
+    }
+
+    /**
+     * Payment reference generated when the frontend does not
+     * supply one during checkout.
+     */
+    public static String generateTransactionReference() {
+        return "PAY-" +
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) +
+                "-" + String.format("%04d", (int) (Math.random() * 10000));
     }
 
     // Alternative order number generation with sequential pattern

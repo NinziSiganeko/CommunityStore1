@@ -2,6 +2,7 @@ package com.communitystore.controller;
 
 import com.communitystore.domain.Product;
 import com.communitystore.domain.ProductCategory;
+import com.communitystore.domain.ProductCondition;
 import com.communitystore.domain.User;
 import com.communitystore.repository.UserRepository;
 import com.communitystore.service.ProductCategoryService;
@@ -52,6 +53,7 @@ public class ProductController {
             @RequestParam int stock,
             @RequestParam Long category_Id,
             @RequestParam Long sellerId,
+            @RequestParam(required = false) String condition,
             @RequestParam(required = false) MultipartFile productImage
     ) throws IOException {
 
@@ -78,6 +80,7 @@ public class ProductController {
                 .setName(name.trim())
                 .setPrice(price)
                 .setStock(stock)
+                .setCondition(parseCondition(condition))
                 .setCategory(category)
                 .build();
 
@@ -88,6 +91,28 @@ public class ProductController {
         product.setSeller(seller);
 
         return ResponseEntity.ok(productService.create(product));
+    }
+
+    /**
+     * Converts an optional condition value into the
+     * {@link ProductCondition} enum.
+     *
+     * A blank/absent value is allowed and means
+     * "condition not specified".
+     */
+    private static ProductCondition parseCondition(String condition) {
+        if (condition == null || condition.isBlank()) {
+            return null;
+        }
+
+        try {
+            return ProductCondition.valueOf(condition.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Unknown product condition: " + condition
+            );
+        }
     }
 
     @GetMapping
@@ -133,17 +158,47 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAvailableStock(id));
     }
 
+    /**
+     * Updates a listing.
+     *
+     * The existing seller and image are carried over so that
+     * editing the price, stock, condition or category does not
+     * detach the listing from its owner or drop its picture.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<Product> updateProduct(
             @PathVariable Long id,
             @RequestBody Product product
     ) {
+        Product existingProduct = productService.getById(id);
+
+        if (existingProduct == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (product == null || product.getName() == null || product.getName().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        if (product.getPrice() <= 0 || product.getStock() < 0) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        ProductCategory category = product.getCategory() != null
+                ? product.getCategory()
+                : existingProduct.getCategory();
+
         Product productToUpdate = new Product.Builder()
                 .setProductId(id)
-                .setName(product.getName())
+                .setName(product.getName().trim())
                 .setPrice(product.getPrice())
                 .setStock(product.getStock())
-                .setCategory(product.getCategory())
+                .setCondition(product.getCondition() != null
+                        ? product.getCondition()
+                        : existingProduct.getCondition())
+                .setCategory(category)
+                .setProductImage(existingProduct.getProductImage())
+                .setSeller(existingProduct.getSeller())
                 .build();
 
         Product updatedProduct = productService.update(productToUpdate);

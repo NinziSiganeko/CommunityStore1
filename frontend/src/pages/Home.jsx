@@ -1,27 +1,55 @@
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import {
   ANNOUNCEMENTS,
   CATEGORIES,
-  TRENDING_ITEMS,
 } from "../utils/data.jsx";
 
-import {
-  Badge,
-  Rating,
-  ShieldIcon,
-} from "../components/Icons.jsx";
+import { ShieldIcon } from "../components/Icons.jsx";
+import { BottomNav, TopBar } from "../components/Navigation.jsx";
+import ProductCard from "../components/ProductCard.jsx";
+import { Banner, Loader } from "../components/Feedback.jsx";
 
 import {
-  BottomNav,
-  TopBar,
-} from "../components/Navigation.jsx";
+  getCurrentUser,
+  isPendingVendor,
+} from "../services/authService.js";
+import { getProducts } from "../services/productService.js";
+import { normalize } from "../utils/format.js";
 
-import { getCurrentUser } from "../services/authService.js";
-
-import { useNavigate } from "react-router-dom";
-
-function Home({ onToast }) {
+function Home() {
   const navigate = useNavigate();
   const user = getCurrentUser();
+
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchDraft, setSearchDraft] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    getProducts()
+        .then((items) => {
+          if (active) {
+            setProducts(items);
+          }
+        })
+        .catch(() => {
+          if (active) {
+            setProducts([]);
+          }
+        })
+        .finally(() => {
+          if (active) {
+            setLoading(false);
+          }
+        });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const greetingName =
       user?.displayName ||
@@ -32,23 +60,56 @@ function Home({ onToast }) {
       ? `(${user.role})`
       : "";
 
+  const trending = useMemo(
+      () =>
+          [...products]
+              .sort((a, b) => Number(b.id || 0) - Number(a.id || 0))
+              .slice(0, 6),
+      [products],
+  );
+
+  /**
+   * Category tiles show a live count of matching listings.
+   */
+  const categoryCounts = useMemo(() => {
+    const counts = {};
+
+    CATEGORIES.forEach((category) => {
+      const key = normalize(category.label);
+
+      counts[key] = products.filter((product) => {
+        if (key === "vendors") {
+          return normalize(product.sellerUserType) === "vendor";
+        }
+
+        return normalize(product.category) === key;
+      }).length;
+    });
+
+    return counts;
+  }, [products]);
+
   function openCategory(category) {
     navigate(
-        `/marketplace?category=${encodeURIComponent(
-            category,
-        )}`,
+        `/marketplace?category=${encodeURIComponent(category)}`,
+    );
+  }
+
+  function submitSearch(event) {
+    event.preventDefault();
+
+    const query = searchDraft.trim();
+
+    navigate(
+        query
+            ? `/marketplace?q=${encodeURIComponent(query)}`
+            : "/marketplace",
     );
   }
 
   return (
       <div className="screen">
-        <TopBar
-            onBell={() =>
-                onToast(
-                    "No new notifications",
-                )
-            }
-        />
+        <TopBar onBell={() => navigate("/notifications")} />
 
         <div className="scroll-area">
           <div className="hero">
@@ -69,26 +130,51 @@ function Home({ onToast }) {
             </span>
             </h2>
 
-            <button
-                className="search-bar search-bar-button"
-                onClick={() =>
-                    navigate("/marketplace")
-                }
-                aria-label="Open marketplace search"
+            <form
+                className="search-bar"
+                onSubmit={submitSearch}
+                role="search"
             >
               <i className="bi bi-search" />
 
-              <span>
-              Search textbooks,
-              electronics, clothing...
-            </span>
-            </button>
+              <input
+                  className="search-input"
+                  type="search"
+                  value={searchDraft}
+                  onChange={(event) => setSearchDraft(event.target.value)}
+                  placeholder="Search textbooks, electronics, clothing..."
+                  aria-label="Search the marketplace"
+              />
+
+              <button
+                  type="submit"
+                  className="search-go"
+                  aria-label="Search"
+              >
+                Search
+              </button>
+            </form>
           </div>
+
+          {isPendingVendor(user) && (
+              <div className="home-banner-wrap">
+                <Banner
+                    tone="warning"
+                    icon="bi-hourglass-split"
+                    title="Vendor account awaiting verification"
+                >
+                  Your listings stay hidden from buyers until an admin
+                  verifies your account. You can still browse and manage
+                  your profile.
+                </Banner>
+              </div>
+          )}
 
           <div className="categories-section">
             <div className="categories-grid">
               {CATEGORIES.map((cat) => (
                   <button
+                      type="button"
                       key={cat.label}
                       className="category-btn"
                       style={{
@@ -105,6 +191,10 @@ function Home({ onToast }) {
                     <span className="cat-label">
                   {cat.label}
                 </span>
+
+                    <span className="cat-count">
+                      {categoryCounts[normalize(cat.label)] ?? 0}
+                    </span>
                   </button>
               ))}
             </div>
@@ -117,6 +207,7 @@ function Home({ onToast }) {
               </h3>
 
               <button
+                  type="button"
                   className="see-all-btn"
                   onClick={() =>
                       navigate("/marketplace")
@@ -126,52 +217,26 @@ function Home({ onToast }) {
               </button>
             </div>
 
-            <div className="trending-scroll">
-              {TRENDING_ITEMS.map(
-                  (item) => (
-                      <div
+            {loading && <Loader label="Loading listings..." />}
+
+            {!loading && trending.length === 0 && (
+                <p className="section-empty">
+                  No listings yet — be the first to sell something.
+                </p>
+            )}
+
+            {!loading && trending.length > 0 && (
+                <div className="trending-scroll">
+                  {trending.map((item) => (
+                      <ProductCard
                           key={item.id}
-                          className="trending-card"
-                          onClick={() =>
-                              navigate(
-                                  "/marketplace",
-                              )
-                          }
-                          role="link"
-                          tabIndex="0"
-                      >
-                        <div className="trending-card-img-wrap">
-                          <img
-                              src={item.img}
-                              alt={item.name}
-                          />
-
-                          <span className="badge-img-overlay">
-                      <Badge
-                          type={item.badge}
+                          product={item}
+                          showWishlist={false}
+                          showAddToCart={false}
                       />
-                    </span>
-                        </div>
-
-                        <div className="trending-card-body">
-                          <p className="trending-card-name">
-                            {item.name}
-                          </p>
-
-                          <div className="trending-card-footer">
-                      <span className="price">
-                        {item.price}
-                      </span>
-
-                            <Rating
-                                value={item.rating}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                  ),
-              )}
-            </div>
+                  ))}
+                </div>
+            )}
           </div>
 
           <div className="announcements-section">
@@ -186,13 +251,18 @@ function Home({ onToast }) {
 
             {ANNOUNCEMENTS.map(
                 (announcement) => (
-                    <div
+                    <button
+                        type="button"
                         key={announcement.id}
                         className="announcement-card"
                         style={{
                           background:
                           announcement.bg,
+                          width: "100%",
+                          textAlign: "left",
+                          border: 0,
                         }}
+                        onClick={() => navigate("/bulletin")}
                     >
                       <div className="announcement-icon">
                         {
@@ -249,7 +319,7 @@ function Home({ onToast }) {
                             d="M9 18l6-6-6-6"
                         />
                       </svg>
-                    </div>
+                    </button>
                 ),
             )}
 

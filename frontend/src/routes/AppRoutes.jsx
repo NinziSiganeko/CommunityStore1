@@ -12,6 +12,13 @@ import Login from "../pages/Login.jsx";
 import Register from "../pages/Register.jsx";
 import Sell from "../pages/Sell.jsx";
 import Profile from "../pages/Profile.jsx";
+import Cart from "../pages/Cart.jsx";
+import Checkout from "../pages/Checkout.jsx";
+import Orders from "../pages/Orders.jsx";
+import OrderDetails from "../pages/OrderDetails.jsx";
+import MyListings from "../pages/MyListings.jsx";
+import Wishlist from "../pages/Wishlist.jsx";
+import AdminDashboard from "../pages/AdminDashboard.jsx";
 import RoutePlaceholder from "../pages/RoutePlaceholder.jsx";
 import MainLayout from "../mainlayout/MainLayout.jsx";
 
@@ -50,40 +57,50 @@ function AuthOnly({ children }) {
     return children;
 }
 
-function AppRoutes({ toast, onToast }) {
+/*
+ * Features that intentionally stay placeholders until their
+ * phase lands: chat, the bulletin board and notifications.
+ */
+const PLACEHOLDER_ROUTES = [
+    ["notifications", "Notifications"],
+    ["chat", "Chat & Community"],
+    ["bulletin", "Bulletin"],
+];
+
+function AppRoutes() {
     return (
         <Routes>
-            <Route
-                element={
-                    <MainLayout toast={toast} />
-                }
-            >
+            <Route element={<MainLayout />}>
                 <Route
                     path="/"
-                    element={<Home onToast={onToast} />}
+                    element={<Home />}
                 />
 
                 <Route
                     path="/marketplace"
-                    element={
-                        <Marketplace onToast={onToast} />
-                    }
+                    element={<Marketplace />}
                 />
 
                 <Route
                     path="/product/:id"
-                    element={
-                        <ProductDetails
-                            onToast={onToast}
-                        />
-                    }
+                    element={<ProductDetails />}
+                />
+
+                <Route
+                    path="/cart"
+                    element={<Cart />}
+                />
+
+                <Route
+                    path="/wishlist"
+                    element={<Wishlist />}
                 />
 
                 <Route
                     path="/login"
                     element={
                         <AuthOnly>
-                            <Login onToast={onToast} />
+                            <Login />
                         </AuthOnly>
                     }
                 />
@@ -92,7 +109,7 @@ function AppRoutes({ toast, onToast }) {
                     path="/register"
                     element={
                         <AuthOnly>
-                            <Register onToast={onToast} />
+                            <Register />
                         </AuthOnly>
                     }
                 />
@@ -101,7 +118,7 @@ function AppRoutes({ toast, onToast }) {
                     path="/sell"
                     element={
                         <RequireAuth>
-                            <Sell onToast={onToast} />
+                            <Sell />
                         </RequireAuth>
                     }
                 />
@@ -110,31 +127,57 @@ function AppRoutes({ toast, onToast }) {
                     path="/profile"
                     element={
                         <RequireAuth>
-                            <Profile onToast={onToast} />
+                            <Profile />
                         </RequireAuth>
                     }
                 />
 
-                {[
-                    ["cart", "Cart"],
-                    ["checkout", "Checkout"],
-                    ["orders", "Orders"],
-                    [
-                        "notifications",
-                        "Notifications",
-                    ],
-                    ["chat", "Chat & Community"],
-                    ["bulletin", "Bulletin"],
-                    ["wishlist", "Wishlist"],
-                    [
-                        "my-listings",
-                        "My Listings",
-                    ],
-                    [
-                        "admin",
-                        "Admin Dashboard",
-                    ],
-                ].map(
+                <Route
+                    path="/checkout"
+                    element={
+                        <RequireAuth>
+                            <Checkout />
+                        </RequireAuth>
+                    }
+                />
+
+                <Route
+                    path="/orders"
+                    element={
+                        <RequireAuth>
+                            <Orders />
+                        </RequireAuth>
+                    }
+                />
+
+                <Route
+                    path="/orders/:orderId"
+                    element={
+                        <RequireAuth>
+                            <OrderDetails />
+                        </RequireAuth>
+                    }
+                />
+
+                <Route
+                    path="/my-listings"
+                    element={
+                        <RequireAuth>
+                            <MyListings />
+                        </RequireAuth>
+                    }
+                />
+
+                <Route
+                    path="/admin"
+                    element={
+                        <RequireAuth>
+                            <AdminDashboard />
+                        </RequireAuth>
+                    }
+                />
+
+                {PLACEHOLDER_ROUTES.map(
                     ([path, title]) => (
                         <Route
                             key={path}

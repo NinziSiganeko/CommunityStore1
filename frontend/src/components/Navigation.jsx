@@ -1,14 +1,13 @@
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import {
-  Link,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
 
+import { useCart } from "../context/CartContext.jsx";
 import {
   getCurrentUser,
+  isPendingVendor,
   signOut,
 } from "../services/authService.js";
+import useWishlist from "../hooks/useWishlist.js";
 
 /**
  * Top navigation bar.
@@ -16,6 +15,8 @@ import {
 function TopBar({ onBell }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { itemCount } = useCart();
+  const wishlist = useWishlist();
 
   const [user, setUser] = useState(null);
 
@@ -27,15 +28,13 @@ function TopBar({ onBell }) {
   }
 
   /**
-   * Re-read the user whenever the route changes.
+   * Re-read the user whenever the route changes, so signing in,
+   * signing out or editing a profile refreshes the bar.
    */
   useEffect(() => {
     readUser();
   }, [location.pathname]);
 
-  /**
-   * Log the user out.
-   */
   function handleLogout() {
     signOut();
 
@@ -46,22 +45,14 @@ function TopBar({ onBell }) {
     });
   }
 
-  /**
-   * Username has been completely removed.
-   *
-   * The display name is now:
-   * 1. First name + last name
-   * 2. Email before @
-   * 3. "User"
-   */
   const displayName =
       user?.displayName ||
       user?.email?.split("@")[0] ||
       "User";
 
   /**
-   * Admin users go to the admin dashboard.
-   * Everyone else currently goes to Profile.
+   * Admins land on the verification dashboard,
+   * everyone else on their profile.
    */
   const dashboardPath =
       user?.role === "ADMIN"
@@ -86,30 +77,24 @@ function TopBar({ onBell }) {
 
         <div className="topbar-actions">
           {user ? (
-              <>
-                <Link
-                    className="auth-user-link"
-                    to={dashboardPath}
-                    title="Open your profile"
-                >
-                  <i className="bi bi-person-circle" />
+              <Link
+                  className="auth-user-link"
+                  to={dashboardPath}
+                  title="Open your profile"
+              >
+                <i className="bi bi-person-circle" />
 
-                  <span>
-                Hi, {displayName}
-              </span>
-                </Link>
+                <span>
+              Hi, {displayName}
+            </span>
 
-                <button
-                    className="auth-logout-btn"
-                    onClick={handleLogout}
-                >
-                  <i className="bi bi-box-arrow-right" />
-
-                  <span>
-                Logout
-              </span>
-                </button>
-              </>
+                {isPendingVendor(user) && (
+                    <i
+                        className="bi bi-hourglass-split pending-icon"
+                        title="Awaiting vendor verification"
+                    />
+                )}
+              </Link>
           ) : (
               <>
                 <Link
@@ -129,6 +114,49 @@ function TopBar({ onBell }) {
           )}
 
           <button
+              type="button"
+              className="topbar-icon-btn"
+              onClick={() => navigate("/wishlist")}
+              aria-label="Wishlist"
+              title="Wishlist"
+          >
+            <i className="bi bi-heart" />
+
+            {wishlist.count > 0 && (
+                <span className="icon-count">{wishlist.count}</span>
+            )}
+          </button>
+
+          <button
+              type="button"
+              className="topbar-icon-btn"
+              onClick={() => navigate("/cart")}
+              aria-label="Cart"
+              title="Cart"
+          >
+            <i className="bi bi-bag" />
+
+            {itemCount > 0 && (
+                <span className="icon-count">{itemCount}</span>
+            )}
+          </button>
+
+          {user && (
+              <button
+                  type="button"
+                  className="auth-logout-btn"
+                  onClick={handleLogout}
+              >
+                <i className="bi bi-box-arrow-right" />
+
+                <span>
+              Logout
+            </span>
+              </button>
+          )}
+
+          <button
+              type="button"
               className="topbar-bell"
               onClick={onBell}
               aria-label="Notifications"
@@ -144,10 +172,14 @@ function TopBar({ onBell }) {
 
 /**
  * Bottom navigation.
+ *
+ * Chat moved out of the bottom bar until the messaging phase; the
+ * cart takes its slot because it is part of the purchase flow.
  */
 function BottomNav({ active }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { itemCount } = useCart();
 
   const current =
       active ||
@@ -155,9 +187,14 @@ function BottomNav({ active }) {
           ? "market"
           : location.pathname.slice(1) || "home");
 
+  function isOn(path) {
+    return location.pathname === path;
+  }
+
   return (
       <div className="bottom-nav">
         <button
+            type="button"
             className="nav-btn"
             onClick={() => navigate("/")}
         >
@@ -181,10 +218,9 @@ function BottomNav({ active }) {
         </button>
 
         <button
+            type="button"
             className="nav-btn"
-            onClick={() =>
-                navigate("/marketplace")
-            }
+            onClick={() => navigate("/marketplace")}
         >
           <i
               className={`bi ${
@@ -206,6 +242,7 @@ function BottomNav({ active }) {
         </button>
 
         <button
+            type="button"
             className="nav-sell"
             onClick={() => navigate("/sell")}
         >
@@ -217,23 +254,53 @@ function BottomNav({ active }) {
         </button>
 
         <button
+            type="button"
             className="nav-btn"
-            onClick={() => navigate("/chat")}
+            onClick={() => navigate("/cart")}
         >
-          <i className="bi bi-chat-dots" />
+          <span className="nav-icon-wrap">
+            <i
+                className={`bi ${
+                    isOn("/cart")
+                        ? "bi-bag-fill"
+                        : "bi-bag"
+                }`}
+            />
 
-          <span className="nav-label">
-          Chat
+            {itemCount > 0 && (
+                <span className="icon-count">{itemCount}</span>
+            )}
+          </span>
+
+          <span
+              className={`nav-label ${
+                  isOn("/cart") ? "active" : ""
+              }`}
+          >
+          Cart
         </span>
         </button>
 
         <button
+            type="button"
             className="nav-btn"
             onClick={() => navigate("/profile")}
         >
-          <i className="bi bi-person" />
+          <i
+              className={`bi ${
+                  current === "profile"
+                      ? "bi-person-fill"
+                      : "bi-person"
+              }`}
+          />
 
-          <span className="nav-label">
+          <span
+              className={`nav-label ${
+                  current === "profile"
+                      ? "active"
+                      : ""
+              }`}
+          >
           Profile
         </span>
         </button>
