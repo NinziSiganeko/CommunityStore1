@@ -5,6 +5,7 @@ import {
   register,
 } from "../services/authService.js";
 import { TopBar } from "../components/Navigation.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 const INITIAL_FORM = {
   email: "",
@@ -16,9 +17,9 @@ const INITIAL_FORM = {
   userType: "RESIDENT",
 };
 
-function Register({ onToast }) {
+function Register() {
   const navigate = useNavigate();
-
+  const { showToast } = useToast();
   const [form, setForm] = useState(INITIAL_FORM);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -70,8 +71,10 @@ function Register({ onToast }) {
        */
       await register(form);
 
-      onToast(
-          "Account created. You can now sign in.",
+      showToast(
+          form.userType === "VENDOR"
+              ? "Vendor account created — an admin will review it"
+              : "Account created. You can now sign in.",
       );
 
       /**
@@ -128,10 +131,7 @@ function Register({ onToast }) {
 
   return (
       <div className="screen auth-screen">
-        <TopBar
-            onBell={() => onToast("No new notifications")}
-        />
-
+        onBell={() => navigate("/notifications")}
         <div className="auth-content auth-content-wide">
           <div className="auth-icon">
             <i className="bi bi-person-plus-fill" />
@@ -173,6 +173,12 @@ function Register({ onToast }) {
                     Vendor
                   </option>
                 </select>
+                {form.userType === "VENDOR" && (
+                    <small className="field-help">
+                      Vendor accounts are reviewed by an admin before your
+                      listings become visible to buyers.
+                    </small>
+                )}
               </label>
             </div>
 

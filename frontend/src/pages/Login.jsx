@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
+  getCurrentUser,
   isAuthenticated,
+  isPendingVendor,
   signIn,
 } from "../services/authService.js";
 import { TopBar } from "../components/Navigation.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
-function Login({ onToast }) {
+function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { showToast } = useToast();
 
   const [form, setForm] = useState({
     email: "",
@@ -49,8 +53,13 @@ function Login({ onToast }) {
     try {
       await signIn(form.email, form.password);
 
-      onToast("Welcome back.");
+      const signedIn = getCurrentUser();
 
+      showToast(
+          isPendingVendor(signedIn)
+              ? "Signed in — your vendor account is awaiting verification"
+              : "Welcome back.",
+      );
 
       navigate(location.state?.from || "/", {
         replace: true,
@@ -90,9 +99,7 @@ function Login({ onToast }) {
 
   return (
       <div className="screen auth-screen">
-        <TopBar
-            onBell={() => onToast("No new notifications")}
-        />
+        <TopBar onBell={() => navigate("/notifications")} />
 
         <div className="auth-content">
           <div className="auth-icon">

@@ -76,7 +76,16 @@ public class UserController {
             );
         }
 
-        if (user.getAccountStatus() != UserStatus.ACTIVE) {
+        /*
+         * Vendor accounts start in PENDING_VERIFICATION so that an
+         * admin can review them. They may sign in (to see their
+         * verification status and browse) but cannot publish
+         * listings until they are verified.
+         *
+         * Suspended and deactivated accounts are still blocked.
+         */
+        if (user.getAccountStatus() != UserStatus.ACTIVE
+                && user.getAccountStatus() != UserStatus.PENDING_VERIFICATION) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
                     "Account is not active"
@@ -88,8 +97,11 @@ public class UserController {
         response.put("email", user.getEmail());
         response.put("firstName", user.getFirstName());
         response.put("lastName", user.getLastName());
+        response.put("phoneNumber", user.getPhoneNumber());
+        response.put("address", user.getAddress());
         response.put("role", user.getUserType().name());
         response.put("verified", user.isVerified());
+        response.put("accountStatus", user.getAccountStatus().name());
 
         return response;
     }
@@ -97,6 +109,51 @@ public class UserController {
     @GetMapping
     public List<User> getAll() {
         return users.findAll();
+    }
+
+    /**
+     * Returns a single user, used by the profile and checkout
+     * screens to refresh the stored session details.
+     */
+    @GetMapping("/{id}")
+    public User getOne(@PathVariable Long id) {
+        User user = users.findById(id);
+
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+        }
+
+        return user;
+    }
+
+    /**
+     * Vendor accounts that are still waiting for admin review.
+     *
+     * The admin dashboard reads this list to show the
+     * verification queue.
+     */
+    @GetMapping("/vendors/pending")
+    public List<User> getPendingVendors() {
+        return users.findPendingVendors();
+    }
+
+    /**
+     * Updates the editable parts of a profile:
+     * first name, last name, phone number and address.
+     *
+     * Email, password, role, verification flag and account
+     * status deliberately cannot be changed from here.
+     */
+    @PutMapping("/{id}/profile")
+    public User updateProfile(
+            @PathVariable Long id,
+            @RequestBody User profile
+    ) {
+        try {
+            return users.updateProfile(id, profile);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     @PutMapping("/{id}/verify-vendor")

@@ -3,13 +3,37 @@ import { API_BASE_URL } from "./apiClient.js";
 const USER_KEY = "communityStoreUser";
 
 /**
+ * Shapes the sign-in response into the object that is stored in
+ * localStorage and reused across the app.
+ */
+function toSessionUser(session) {
+    const firstName = session.firstName || "";
+    const lastName = session.lastName || "";
+
+    const displayName =
+        [firstName, lastName].filter(Boolean).join(" ") ||
+        session.email?.split("@")[0] ||
+        "User";
+
+    return {
+        userId: session.userId,
+        email: session.email,
+        firstName,
+        lastName,
+        displayName,
+        phoneNumber: session.phoneNumber || "",
+        address: session.address || "",
+        role: session.role || "RESIDENT",
+        verified: Boolean(session.verified),
+        accountStatus: session.accountStatus || "ACTIVE",
+    };
+}
+
+/**
  * Register a new Community Store user.
- *
- * This intentionally uses fetch() directly, matching
- * the working authentication approach used in AnimeStore.
  */
 async function register(user) {
-  const response = await fetch(
+    const response = await fetch(
       `${API_BASE_URL}/users/register`,
       {
         method: "POST",
@@ -57,10 +81,11 @@ async function register(user) {
 /**
  * Sign in using email and password.
  *
- * This also uses direct fetch(), matching AnimeStore.
+ * Vendors waiting for verification may sign in; they simply cannot
+ * publish listings until an admin verifies the account.
  */
 async function signIn(email, password) {
-  const response = await fetch(
+    const response = await fetch(
       `${API_BASE_URL}/users/signin`,
       {
         method: "POST",
@@ -94,43 +119,32 @@ async function signIn(email, password) {
     error.status = response.status;
     error.data = session;
 
-    throw error;
+      throw error;
   }
 
-  const firstName = session.firstName || "";
-  const lastName = session.lastName || "";
+    saveUser(toSessionUser(session));
 
-  const displayName =
-      [firstName, lastName].filter(Boolean).join(" ") ||
-      session.email?.split("@")[0] ||
-      "User";
+    return session;
+}
 
-  localStorage.setItem(
-      USER_KEY,
-      JSON.stringify({
-        userId: session.userId,
-        email: session.email,
-        role: session.role,
-        firstName,
-        lastName,
-        displayName,
-        verified: Boolean(session.verified),
-      }),
-  );
-
-  return session;
+/**
+ * Persist a session object.
+ */
+function saveUser(user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    return user;
 }
 
 /**
  * Get the logged-in user.
  */
 function getCurrentUser() {
-  const storedUser =
-      localStorage.getItem(USER_KEY);
+    const storedUser = localStorage.getItem(USER_KEY);
 
-  if (!storedUser) {
-    return null;
-  }
+    if (!storedUser) {
+        return null;
+
+    }
 
   try {
     return JSON.parse(storedUser);
@@ -138,6 +152,31 @@ function getCurrentUser() {
     localStorage.removeItem(USER_KEY);
     return null;
   }
+}
+/**
+ * Merge changes into the stored session.
+ *
+ * Used after a profile update so the top bar and profile screen
+ * show the new name without another sign-in.
+ */
+function updateStoredUser(changes) {
+    const current = getCurrentUser();
+
+    if (!current) {
+        return null;
+    }
+
+    const next = {
+        ...current,
+        ...changes,
+    };
+
+    next.displayName =
+        [next.firstName, next.lastName].filter(Boolean).join(" ") ||
+        next.email?.split("@")[0] ||
+        "User";
+
+    return saveUser(next);
 }
 
 /**
@@ -154,10 +193,37 @@ function isAuthenticated() {
   return Boolean(getCurrentUser());
 }
 
+/**
+ * True when the account is a vendor that still needs admin
+ * verification. Those accounts can browse but not sell.
+ */
+function isPendingVendor(user) {
+    return Boolean(
+        user &&
+        user.role === "VENDOR" &&
+        (user.accountStatus === "PENDING_VERIFICATION" || !user.verified),
+    );
+}
+
+/**
+ * True when the account is allowed to publish listings.
+ */
+function canSell(user) {
+    if (!user) {
+        return false;
+    }
+
+    return !isPendingVendor(user) && user.accountStatus !== "SUSPENDED";
+}
+
 export {
-  getCurrentUser,
-  isAuthenticated,
-  register,
-  signIn,
-  signOut,
+    canSell,
+    getCurrentUser,
+    isAuthenticated,
+    isPendingVendor,
+    register,
+    saveUser,
+    signIn,
+    signOut,
+    updateStoredUser,
 };

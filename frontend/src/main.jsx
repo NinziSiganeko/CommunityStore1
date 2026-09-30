@@ -5,6 +5,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import App from "./App.jsx";
 import "./assets/styles.css";
 import "./assets/phase3.css";
+import "./assets/phase4.css";
 
 createRoot(document.getElementById("root")).render(
     <StrictMode>
