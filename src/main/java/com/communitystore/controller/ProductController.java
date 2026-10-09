@@ -2,13 +2,13 @@ package com.communitystore.controller;
 
 import com.communitystore.domain.Product;
 import com.communitystore.domain.ProductCategory;
+import com.communitystore.domain.ProductCondition;
 import com.communitystore.domain.User;
 import com.communitystore.repository.UserRepository;
 import com.communitystore.service.ProductCategoryService;
 import com.communitystore.service.ProductService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,11 +43,8 @@ public class ProductController {
     }
 
     /**
-     * Creates a listing for the currently authenticated user.
-     *
-     * The seller is resolved from the JWT principal instead of trusting a
-     * sellerId sent by the browser. This prevents one user from creating a
-     * listing under another user's account.
+     * Creates a listing and associates it with the supplied seller account.
+     * Seller attribution is not access-controlled.
      */
     @PostMapping
     public ResponseEntity<Product> createProduct(
@@ -55,8 +52,9 @@ public class ProductController {
             @RequestParam double price,
             @RequestParam int stock,
             @RequestParam Long category_Id,
-            @RequestParam(required = false) MultipartFile productImage,
-            @AuthenticationPrincipal String authenticatedEmail
+            @RequestParam Long sellerId,
+            @RequestParam(required = false) String condition,
+            @RequestParam(required = false) MultipartFile productImage
     ) throws IOException {
 
         if (stock < 0) {
@@ -72,16 +70,9 @@ public class ProductController {
             return ResponseEntity.badRequest().build();
         }
 
-        if (authenticatedEmail == null || authenticatedEmail.isBlank()) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "Authenticated seller could not be identified"
-            );
-        }
-
-        User seller = userRepository.findByEmailIgnoreCase(authenticatedEmail)
+        User seller = userRepository.findById(sellerId)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
+                        HttpStatus.BAD_REQUEST,
                         "Seller account could not be found"
                 ));
 
@@ -89,6 +80,7 @@ public class ProductController {
                 .setName(name.trim())
                 .setPrice(price)
                 .setStock(stock)
+                .setCondition(parseCondition(condition))
                 .setCategory(category)
                 .build();
 
@@ -100,6 +92,28 @@ public class ProductController {
 
         return ResponseEntity.ok(productService.create(product));
     }
+    /**
+     * Converts an optional condition value into the
+     * {@link ProductCondition} enum.
+     *
+     * A blank/absent value is allowed and means
+     * "condition not specified".
+     */
+    private static ProductCondition parseCondition(String condition) {
+        if (condition == null || condition.isBlank()) {
+            return null;
+        }
+
+        try {
+            return ProductCondition.valueOf(condition.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Unknown product condition: " + condition
+            );
+        }
+    }
+
 
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts() {
@@ -144,18 +158,49 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAvailableStock(id));
     }
 
+    /**
+     * Updates a listing.
+     *
+     * The existing seller and image are carried over so that
+     * editing the price, stock, condition or category does not
+     * detach the listing from its owner or drop its picture.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<Product> updateProduct(
             @PathVariable Long id,
             @RequestBody Product product
     ) {
+        Product existingProduct = productService.getById(id);
+
+        if (existingProduct == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (product == null || product.getName() == null || product.getName().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        if (product.getPrice() <= 0 || product.getStock() < 0) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        ProductCategory category = product.getCategory() != null
+                ? product.getCategory()
+                : existingProduct.getCategory();
+
         Product productToUpdate = new Product.Builder()
                 .setProductId(id)
-                .setName(product.getName())
+                .setName(product.getName().trim())
                 .setPrice(product.getPrice())
                 .setStock(product.getStock())
-                .setCategory(product.getCategory())
+                .setCondition(product.getCondition() != null
+                        ? product.getCondition()
+                        : existingProduct.getCondition())
+                .setCategory(category)
+                .setProductImage(existingProduct.getProductImage())
+                .setSeller(existingProduct.getSeller())
                 .build();
+
 
         Product updatedProduct = productService.update(productToUpdate);
         return updatedProduct != null

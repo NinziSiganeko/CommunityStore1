@@ -7,22 +7,30 @@ import com.communitystore.domain.OrderItem;
 import com.communitystore.factory.CustomerOrderFactory;
 import com.communitystore.service.ICustomerOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/orders")
-@CrossOrigin(origins = "http://localhost:3000") // Add CORS for frontend
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 public class CustomerOrderController {
 
     @Autowired
     private ICustomerOrderService orderService;
 
-    // NEW: Create order using factory pattern (recommended)
+    /**
+     * Creates an order from checkout details.
+     *
+     * Returns a JSON message on failure so the checkout screen can
+     * tell the buyer exactly what went wrong (for example an item
+     * that sold out while they were paying).
+     */
     @PostMapping("/create")
-    public ResponseEntity<CustomerOrder> createOrderFromDetails(@RequestBody OrderRequest request) {
+    public ResponseEntity<?> createOrderFromDetails(@RequestBody OrderRequest request) {
         try {
             System.out.println("Creating order for buyer: " +
                     (request.getBuyer() != null ? request.getBuyer().getUserId() : "null"));
@@ -39,11 +47,16 @@ public class CustomerOrderController {
             return ResponseEntity.ok(createdOrder);
         } catch (IllegalArgumentException e) {
             System.err.println(" Validation error creating order: " + e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(Map.of("message", String.valueOf(e.getMessage())));
+        } catch (RuntimeException e) {
+            // Stock problems are raised as RuntimeException by the service.
+            System.err.println(" Order could not be fulfilled: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", String.valueOf(e.getMessage())));
         } catch (Exception e) {
             System.err.println(" Error creating order: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "We couldn't place this order. Please try again."));
         }
     }
 
@@ -202,6 +215,92 @@ public class CustomerOrderController {
                     ", paymentMethod='" + paymentMethod + '\'' +
                     ", shippingAddress='" + shippingAddress + '\'' +
                     '}';
+        }
+    }
+    /**
+     * Returns orders that contain listings belonging to this seller.
+     */
+    @GetMapping("/seller/{sellerId}")
+    public ResponseEntity<?> getSellerOrders(@PathVariable Long sellerId) {
+        try {
+            return ResponseEntity.ok(orderService.getOrdersForSeller(sellerId));
+        } catch (Exception e) {
+            System.err.println("Error fetching seller orders: " + e.getMessage());
+
+            return ResponseEntity.badRequest().body(
+                    Map.of("message", "Could not load seller orders.")
+            );
+        }
+    }
+
+    /**
+     * Seller accepts or rejects a pending order.
+     *
+     * Expected request:
+     * {
+     *   "sellerId": 12,
+     *   "decision": "ACCEPT"
+     * }
+     *
+     * decision can be: ACCEPT or REJECT.
+     */
+    @PostMapping("/{orderId}/seller-decision")
+    public ResponseEntity<?> respondToOrder(
+            @PathVariable Long orderId,
+            @RequestBody SellerDecisionRequest request
+    ) {
+        try {
+            if (request == null
+                    || request.getSellerId() == null
+                    || request.getDecision() == null) {
+                return ResponseEntity.badRequest().body(
+                        Map.of("message", "Seller ID and decision are required.")
+                );
+            }
+
+            CustomerOrder updated = orderService.respondToOrder(
+                    orderId,
+                    request.getSellerId(),
+                    request.getDecision()
+            );
+
+            return ResponseEntity.ok(updated);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                    Map.of("message", String.valueOf(e.getMessage()))
+            );
+        } catch (Exception e) {
+            System.err.println("Error responding to order: " + e.getMessage());
+
+            return ResponseEntity.internalServerError().body(
+                    Map.of("message", "Could not update this order.")
+            );
+        }
+    }
+
+    public static class SellerDecisionRequest {
+
+        private Long sellerId;
+        private String decision;
+
+        public SellerDecisionRequest() {
+        }
+
+        public Long getSellerId() {
+            return sellerId;
+        }
+
+        public void setSellerId(Long sellerId) {
+            this.sellerId = sellerId;
+        }
+
+        public String getDecision() {
+            return decision;
+        }
+
+        public void setDecision(String decision) {
+            this.decision = decision;
         }
     }
 

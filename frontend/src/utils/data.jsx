@@ -1,22 +1,3 @@
-const TRENDING_ITEMS = [
-  {
-    id: 1,
-    name: "Ergon Dorm Chair",
-    price: "R 4 500.00",
-    rating: 4.8,
-    badge: "verified",
-    img: "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=300&q=80"
-  },
-  {
-    id: 2,
-    name: "CS Essentials Bundle",
-    price: "R 120.00",
-    rating: 4.9,
-    badge: "verified",
-    img: "https://images.unsplash.com/photo-1481277542470-605612bd2d61?w=300&q=80"
-  },
-];
-
 const ANNOUNCEMENTS = [
   {
     id: 1,
@@ -94,4 +75,7 @@ const CATEGORIES = [
   },
 ];
 
-export { ANNOUNCEMENTS, CATEGORIES, TRENDING_ITEMS };
+export {
+  ANNOUNCEMENTS,
+  CATEGORIES
+};
