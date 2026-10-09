@@ -104,6 +104,7 @@ public class UserController {
         response.put("accountStatus", user.getAccountStatus().name());
 
         return response;
+
     }
 
     @GetMapping

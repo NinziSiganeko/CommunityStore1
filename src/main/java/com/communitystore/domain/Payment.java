@@ -1,6 +1,5 @@
 package com.communitystore.domain;
 
-
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -11,14 +10,30 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long paymentId;
     private double amount;
+
+    @Enumerated(EnumType.STRING)
     private PaymentMethod method;
+
     private LocalDateTime paymentDate;
+
+    @Enumerated(EnumType.STRING)
     private PaymentStatus status;
+
     private String transactionReference;
+
+    @Column(length = 60)
+    private String payoutType;
+
+    @Column(length = 255)
+    private String paymentDetails;
+
+    @Column(nullable = false)
+    private boolean handoverConfirmed = false;
 
     @OneToOne
     @JoinColumn(name = "order_id")
     private CustomerOrder customerOrder;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
@@ -27,13 +42,16 @@ public class Payment {
     protected Payment() {
     }
 
-    public Payment(Builder builder){
+    public Payment(Builder builder) {
         this.paymentId = builder.paymentId;
         this.amount = builder.amount;
         this.method = builder.method;
         this.paymentDate = builder.paymentDate;
         this.status = builder.status;
         this.transactionReference = builder.transactionReference;
+        this.payoutType = builder.payoutType;
+        this.paymentDetails = builder.paymentDetails;
+        this.handoverConfirmed = builder.handoverConfirmed;
         this.buyer = builder.buyer;
         this.customerOrder = builder.customerOrder;
     }
@@ -57,6 +75,19 @@ public class Payment {
     public CustomerOrder getCustomerOrder() {
         return customerOrder;
     }
+
+    public String getPayoutType() {
+        return payoutType;
+    }
+
+    public String getPaymentDetails() {
+        return paymentDetails;
+    }
+
+    public boolean isHandoverConfirmed() {
+        return handoverConfirmed;
+    }
+
     public User getBuyer() {
         return buyer;
     }
@@ -74,6 +105,9 @@ public class Payment {
                 ", transactionReference='" + transactionReference + '\'' +
                 ", customerOrder=" + customerOrder +
                 ", buyer=" + buyer +
+                ", payoutType='" + payoutType + '\'' +
+                ", paymentDetails='" + paymentDetails + '\'' +
+                ", handoverConfirmed=" + handoverConfirmed +
                 '}';
     }
     public static class Builder {
@@ -85,6 +119,9 @@ public class Payment {
         private String transactionReference;
         private User buyer;
         private CustomerOrder customerOrder;
+        private String payoutType;
+        private String paymentDetails;
+        private boolean handoverConfirmed;
 
         public Builder setPaymentId(Long paymentId) {
             this.paymentId = paymentId;
@@ -118,6 +155,18 @@ public class Payment {
             this.buyer = buyer;
             return this;
         }
+        public Builder setPayoutType(String payoutType) {
+            this.payoutType = payoutType;
+            return this;
+        }
+        public Builder setPaymentDetails(String paymentDetails) {
+            this.paymentDetails = paymentDetails;
+            return this;
+        }
+        public Builder setHandoverConfirmed(boolean handoverConfirmed) {
+            this.handoverConfirmed = handoverConfirmed;
+            return this;
+        }
         public Builder copy(Payment payment) {
             this.paymentId = payment.paymentId;
             this.amount = payment.amount;
@@ -127,6 +176,9 @@ public class Payment {
             this.transactionReference = payment.transactionReference;
             this.buyer = payment.buyer;
             this.customerOrder = payment.customerOrder;
+            this.payoutType = payment.payoutType;
+            this.paymentDetails = payment.paymentDetails;
+            this.handoverConfirmed = payment.handoverConfirmed;
             return this;
         }
 

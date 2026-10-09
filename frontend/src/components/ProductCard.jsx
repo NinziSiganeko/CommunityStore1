@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Rating } from "./Icons.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
-import useWishlist from "../hooks/useWishlist.jsx";
+import useWishlist from "../hooks/useWishlist.js";
 
 /**
  * Marketplace product tile.

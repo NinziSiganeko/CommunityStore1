@@ -7,7 +7,7 @@ import { Banner, Loader, StateMessage } from "../components/Feedback.jsx";
 
 import { useCart } from "../context/CartContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
-import useWishlist from "../hooks/useWishlist.jsx";
+import useWishlist from "../hooks/useWishlist.js";
 
 import { getCurrentUser } from "../services/authService.js";
 import { getProductById } from "../services/productService.js";
@@ -102,8 +102,9 @@ function ProductDetails() {
   const isOwner =
       user?.userId && String(user.userId) === String(product.sellerUserId);
 
+  const isVendorSeller = product.sellerUserType === "VENDOR";
   const awaitingVerification =
-      product.sellerUserType === "VENDOR" && product.sellerVerified === false;
+      isVendorSeller && product.sellerVerified === false;
 
   const purchasable = product.stock > 0 && !awaitingVerification;
   const wished = wishlist.has(product.id);
@@ -124,18 +125,44 @@ function ProductDetails() {
     });
   }
 
-  function addToCart(redirectToCheckout = false) {
+  function addToCart(redirectToCheckout = false, preferredMethod = null) {
     addItem(product, quantity);
     showToast(`${quantity} × ${product.name} added to cart`);
 
     if (redirectToCheckout) {
-      navigate("/checkout");
+      navigate(
+          preferredMethod
+              ? `/checkout?method=${encodeURIComponent(preferredMethod)}`
+              : "/checkout",
+      );
     }
   }
 
   function toggleWishlist() {
     const saved = wishlist.toggle(product);
     showToast(saved ? "Saved to wishlist" : "Removed from wishlist");
+  }
+
+  function openChatWithSeller(initialPrompt = "") {
+    const params = new URLSearchParams();
+
+    if (product.sellerUserId) {
+      params.set("sellerId", String(product.sellerUserId));
+    }
+    if (product.seller) {
+      params.set("sellerName", product.seller);
+    }
+    if (product.sellerUserType) {
+      params.set("sellerRole", product.sellerUserType);
+    }
+    if (product.id) {
+      params.set("productId", String(product.id));
+    }
+    if (initialPrompt) {
+      params.set("prompt", initialPrompt);
+    }
+
+    navigate(`/chat?${params.toString()}`);
   }
 
   return (
@@ -177,10 +204,10 @@ function ProductDetails() {
               <strong>{product.price}</strong>
 
               <span className={`status-pill ${purchasable ? "ok" : "warn"}`}>
-                {product.stock > 0
-                    ? `${product.stock} available`
-                    : "Out of stock"}
-              </span>
+              {product.stock > 0
+                  ? `${product.stock} available`
+                  : "Out of stock"}
+            </span>
             </div>
 
             <div className="product-detail-info">
@@ -198,23 +225,42 @@ function ProductDetails() {
                 <span>Seller</span>
                 <strong>
                   {product.seller || "Community seller"}
-                  {product.sellerUserType === "VENDOR" &&
-                      product.sellerVerified && (
-                          <i
-                              className="bi bi-patch-check-fill verified-icon"
-                              title="Verified vendor"
-                          />
-                      )}
+                  {isVendorSeller && product.sellerVerified && (
+                      <i
+                          className="bi bi-patch-check-fill verified-icon"
+                          title="Verified vendor"
+                      />
+                  )}
                 </strong>
               </div>
 
               <div>
-                <span>Availability</span>
-                <strong className={product.stock > 0 ? "in-stock" : "out-of-stock"}>
-                  {product.stock > 0
-                      ? `${product.stock} in stock`
-                      : "Out of stock"}
+                <span>Seller type & payment</span>
+                <strong>
+                  {isVendorSeller
+                      ? "Verified Business Vendor · Cash or EFT by arrangement"
+                      : `Peer Seller (${product.sellerUserType || "STUDENT"}) · Cash or EFT by arrangement`}
                 </strong>
+              </div>
+            </div>
+
+            {/* Payment Options Callout Card */}
+            <div className="product-payment-callout">
+              <div className="product-payment-callout-head">
+                <i
+                    className={`bi ${
+                        isVendorSeller ? "bi-shop-window" : "bi-shield-check"
+                    }`}
+                />
+                <div>
+                  <strong>
+                    Payment arranged with the seller
+                  </strong>
+                  <p>
+                    Arrange cash at a safe meetup or EFT directly with the seller. The app records
+                    the agreed method but does not process or verify payments.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -224,8 +270,8 @@ function ProductDetails() {
                     icon="bi-hourglass-split"
                     title="Vendor awaiting verification"
                 >
-                  This listing belongs to a vendor account that an admin has
-                  not verified yet. Buying is disabled until then.
+                  This listing belongs to a vendor account that an admin has not
+                  verified yet. Buying is disabled until then.
                 </Banner>
             )}
 
@@ -243,69 +289,96 @@ function ProductDetails() {
                 </Banner>
             )}
 
-            <p>
-              Arrange a safe exchange point or campus delivery with the seller
-              after checkout. Community Store keeps the order record so both
-              sides can see what was agreed.
-            </p>
-
             {!isOwner && (
-                <div className="purchase-controls">
-                  <div className="qty-stepper" role="group" aria-label="Quantity">
+                <>
+                  <div className="purchase-controls">
+                    <div
+                        className="qty-stepper"
+                        role="group"
+                        aria-label="Quantity"
+                    >
+                      <button
+                          type="button"
+                          onClick={() => changeQuantity(-1)}
+                          disabled={quantity <= 1}
+                          aria-label="Decrease quantity"
+                      >
+                        <i className="bi bi-dash-lg" />
+                      </button>
+
+                      <span>{quantity}</span>
+
+                      <button
+                          type="button"
+                          onClick={() => changeQuantity(1)}
+                          disabled={product.stock > 0 && quantity >= product.stock}
+                          aria-label="Increase quantity"
+                      >
+                        <i className="bi bi-plus-lg" />
+                      </button>
+                    </div>
+
                     <button
                         type="button"
-                        onClick={() => changeQuantity(-1)}
-                        disabled={quantity <= 1}
-                        aria-label="Decrease quantity"
+                        className="primary-action"
+                        disabled={!purchasable}
+                        onClick={() => addToCart(false)}
                     >
-                      <i className="bi bi-dash-lg" />
-                    </button>
-
-                    <span>{quantity}</span>
-
-                    <button
-                        type="button"
-                        onClick={() => changeQuantity(1)}
-                        disabled={product.stock > 0 && quantity >= product.stock}
-                        aria-label="Increase quantity"
-                    >
-                      <i className="bi bi-plus-lg" />
+                      <i className="bi bi-bag-plus" />
+                      {purchasable ? "Add to cart" : "Unavailable"}
                     </button>
                   </div>
 
-                  <button
-                      type="button"
-                      className="primary-action"
-                      disabled={!purchasable}
-                      onClick={() => addToCart(false)}
-                  >
-                    <i className="bi bi-bag-plus" />
-                    {purchasable ? "Add to cart" : "Unavailable"}
-                  </button>
-                </div>
-            )}
+                  <div className="product-buy-split">
+                    <button
+                        type="button"
+                        className="secondary-action full"
+                        disabled={!purchasable}
+                        onClick={() =>
+                            addToCart(true, "CASH")
+                        }
+                    >
+                      <i
+                          className={`bi ${
+                              isVendorSeller ? "bi-credit-card" : "bi-cash-coin"
+                          }`}
+                      />
+                      {isVendorSeller
+                          ? "Buy now (Online Business Pay)"
+                          : "Buy with Cash on Meetup"}
+                    </button>
 
-            {!isOwner && (
-                <button
-                    type="button"
-                    className="secondary-action full"
-                    disabled={!purchasable}
-                    onClick={() => addToCart(true)}
-                >
-                  Buy now
-                </button>
-            )}
+                    <button
+                        type="button"
+                        className="ghost-btn full"
+                        onClick={() => openChatWithSeller("")}
+                    >
+                      <i className="bi bi-chat-dots-fill" /> Message seller in Chat
+                    </button>
+                  </div>
 
-            {product.sellerEmail && (
-                <a
-                    className="seller-contact"
-                    href={`mailto:${product.sellerEmail}?subject=${encodeURIComponent(
-                        `Question about "${product.name}" on Community Store`,
-                    )}`}
-                >
-                  <i className="bi bi-envelope" />
-                  Ask the seller a question
-                </a>
+                  {/* Facebook Marketplace-style quick chat box */}
+                  <div className="marketplace-chat-starter">
+                    <div className="marketplace-chat-starter-title">
+                      <i className="bi bi-messenger" /> Ask{" "}
+                      <strong>{product.seller || "the seller"}</strong> about
+                      payment or campus meetup
+                    </div>
+
+                    <div className="quick-prompt-chips">
+                      {QUICK_CHAT_PROMPTS.map((promptText) => (
+                          <button
+                              type="button"
+                              key={promptText}
+                              className="quick-prompt-chip"
+                              onClick={() => openChatWithSeller(promptText)}
+                          >
+                            {promptText}
+                          </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
             )}
           </div>
         </div>

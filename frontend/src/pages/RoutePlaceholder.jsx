@@ -8,25 +8,25 @@ import { StateMessage } from "../components/Feedback.jsx";
  * (notifications, chat and the bulletin board).
  */
 function RoutePlaceholder({ title }) {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
-  return (
-      <div className="screen">
-        <TopBar onBell={() => navigate("/notifications")} />
+    return (
+        <div className="screen">
+            <TopBar onBell={() => navigate("/notifications")} />
 
-        <div className="scroll-area route-content">
-          <StateMessage
-              icon="bi-stars"
-              title={title}
-              message="This part of Community Store is planned for a later phase."
-              actionLabel="Browse marketplace"
-              onAction={() => navigate("/marketplace")}
-          />
+            <div className="scroll-area route-content">
+                <StateMessage
+                    icon="bi-stars"
+                    title={title}
+                    message="This part of Community Store is planned for a later phase."
+                    actionLabel="Browse marketplace"
+                    onAction={() => navigate("/marketplace")}
+                />
+            </div>
+
+            <BottomNav />
         </div>
-
-        <BottomNav />
-      </div>
-  );
+    );
 }
 
 export default RoutePlaceholder;

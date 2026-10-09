@@ -143,16 +143,24 @@ function getCurrentUser() {
 
     if (!storedUser) {
         return null;
-
     }
 
   try {
-    return JSON.parse(storedUser);
+    const user = JSON.parse(storedUser);
+    const userId = Number(user?.userId);
+
+    if (!Number.isSafeInteger(userId) || userId <= 0) {
+      localStorage.removeItem(USER_KEY);
+      return null;
+    }
+
+    return { ...user, userId };
   } catch {
     localStorage.removeItem(USER_KEY);
     return null;
   }
 }
+
 /**
  * Merge changes into the stored session.
  *
@@ -190,7 +198,7 @@ function signOut() {
  * Check whether a user is logged in.
  */
 function isAuthenticated() {
-  return Boolean(getCurrentUser());
+    return Boolean(getCurrentUser());
 }
 
 /**

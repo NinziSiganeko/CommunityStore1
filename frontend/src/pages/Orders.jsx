@@ -128,19 +128,17 @@ function Orders() {
 
                                     <span
                                         className={`status-pill ${
-                                            order.status === "PENDING_SELLER_CONFIRMATION"
-                                                ? "warn"
-                                                : order.status === "CANCELLED"
-                                                    ? "danger"
-                                                    : "ok"
+                                            order.status === "CONFIRMED" ? "ok" : "warn"
                                         }`}
                                     >
-                                        {order.status === "PENDING_SELLER_CONFIRMATION"
-                                            ? "Awaiting seller"
-                                             : order.status === "CANCELLED"
-                                                ? "Cancelled"
-                                                : order.status}
-                                      </span>
+                                        {order.status === "CONFIRMED"
+                                            ? "Accepted by seller"
+                                            : order.status === "REJECTED"
+                                                ? "Declined by seller"
+                                                : order.status === "CANCELLED"
+                                                    ? "Cancelled"
+                                                    : "Awaiting seller response"}
+                                    </span>
                                 </div>
 
                                 <div className="order-thumbs">

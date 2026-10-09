@@ -1,40 +1,6 @@
 const ANNOUNCEMENTS = [
   {
     id: 1,
-    bg: "#DBEAFE",
-    tagColor: "#1D4ED8",
-    tag: "BOOK SWAP · 14 Aug",
-    title: "Weekend Book Swap at Main Quad",
-    body: "Bring old semester's books and swap with fellow students. Refreshments provided.",
-    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2">
-      <path strokeLinecap="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-    </svg>,
-  },
-  {
-    id: 2,
-    bg: "#FEF9C3",
-    tagColor: "#D97706",
-    tag: "TRUST TEAM · 14 Aug",
-    title: "Security Update: New Pickup Points",
-    body: "Three new verified 24/7 safe exchange zones added near the Student Union.",
-    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2">
-      <path strokeLinecap="round" d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>,
-  },
-  {
-    id: 3,
-    bg: "#DCFCE7",
-    tagColor: "#16A34A",
-    tag: "CAMPUS DELIVERY · 14 Aug",
-    title: "Campus delivery now active for verified vendors.",
-    body: null,
-    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2">
-      <path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z" />
-      <circle cx="5.5" cy="18.5" r="2.5" />
-      <circle cx="18.5" cy="18.5" r="2.5" />
-    </svg>,
   },
 ];
 

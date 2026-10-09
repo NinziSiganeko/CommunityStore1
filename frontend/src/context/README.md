@@ -14,5 +14,5 @@ Notes:
   re-validated against the API whenever the cart screen opens — prices and
   stock are refreshed before checkout.
 * The wishlist uses a small external store instead of context
-  (`src/services/wishlistService.js` + `src/hooks/useWishlist.jsx`) because it is
+  (`src/services/wishlistService.js` + `src/hooks/useWishlist.js`) because it is
   read in many small components (navigation badge, every product card).

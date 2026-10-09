@@ -6,6 +6,7 @@ public enum PaymentMethod {
     EFT,
     BANK_TRANSFER,
     CASH,
+    SNAPSCAN,
     PAYPAL,
     APPLE_PAY,
     GOOGLE_PAY
