@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { BottomNav, TopBar } from "../components/Navigation.jsx";
@@ -9,65 +9,44 @@ import { useToast } from "../context/ToastContext.jsx";
 
 import { getCurrentUser } from "../services/authService.js";
 import { getErrorMessage } from "../services/apiClient.js";
+
 import {
     createOrder,
     createPaymentForOrder,
 } from "../services/orderService.js";
+
 import { getProductById } from "../services/productService.js";
-import { getUserById } from "../services/userService.js";
 
 import {
     PAYMENT_METHODS,
     formatCurrency,
 } from "../utils/format.js";
 
-const MIN_ADDRESS_LENGTH = 10;
-const MAX_ADDRESS_LENGTH = 200;
+const MIN_DETAILS_LENGTH = 10;
+const MAX_DETAILS_LENGTH = 200;
 
 function Checkout() {
     const navigate = useNavigate();
-    const { items, subtotal, itemCount, clearCart } = useCart();
-    const { showToast } = useToast();
 
+    const {
+        items,
+        subtotal,
+        itemCount,
+        removeItem,
+    } = useCart();
+
+    const { showToast } = useToast();
     const user = getCurrentUser();
 
-    const [address, setAddress] = useState(user?.address || "");
-    const [paymentMethod, setPaymentMethod] = useState("CREDIT_CARD");
+    const [handoverDetails, setHandoverDetails] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState("CASH");
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
-    const [addressTouched, setAddressTouched] = useState(false);
+    const [detailsTouched, setDetailsTouched] = useState(false);
 
-    /* Pre-fill the delivery address from the profile when available. */
-    useEffect(() => {
-        if (!user?.userId) {
-            return;
-        }
-
-        let active = true;
-
-        getUserById(user.userId)
-            .then((profile) => {
-                if (active && profile.address) {
-                    setAddress((current) => current || profile.address);
-                }
-            })
-            .catch(() => {
-                // The stored session details are good enough here.
-            });
-
-        return () => {
-            active = false;
-        };
-    }, [user?.userId]);
-
-    const addressIsValid = useMemo(() => {
-        const trimmed = address.trim();
-
-        return (
-            trimmed.length >= MIN_ADDRESS_LENGTH &&
-            trimmed.length <= MAX_ADDRESS_LENGTH
-        );
-    }, [address]);
+    const handoverDetailsValid =
+        handoverDetails.trim().length >= MIN_DETAILS_LENGTH &&
+        handoverDetails.trim().length <= MAX_DETAILS_LENGTH;
 
     const hasUnavailable = items.some(
         (item) => item.unavailable || item.stock < 1,
@@ -75,16 +54,16 @@ function Checkout() {
 
     async function placeOrder() {
         setError(null);
-        setAddressTouched(true);
+        setDetailsTouched(true);
 
         if (items.length === 0) {
             setError("Your cart is empty.");
             return;
         }
 
-        if (!addressIsValid) {
+        if (!handoverDetailsValid) {
             setError(
-                `Please give a delivery or pickup address between ${MIN_ADDRESS_LENGTH} and ${MAX_ADDRESS_LENGTH} characters.`,
+                `Please describe the collection/delivery plan using ${MIN_DETAILS_LENGTH}–${MAX_DETAILS_LENGTH} characters.`,
             );
             return;
         }
@@ -93,7 +72,13 @@ function Checkout() {
             navigate("/login", {
                 state: { from: "/checkout" },
             });
+            return;
+        }
 
+        if (hasUnavailable) {
+            setError(
+                "Please remove unavailable items from the cart before continuing.",
+            );
             return;
         }
 
@@ -101,22 +86,25 @@ function Checkout() {
 
         try {
             /*
-             * Prices and stock come from the API again, never from the
-             * possibly stale cart, so the totals sent to the backend are
-             * the ones the server will validate.
+             * Refresh each product before checkout.
+             * Never rely on stale cart prices or stock.
              */
-            const fresh = await Promise.allSettled(
-                items.map((item) => getProductById(item.productId)),
+            const freshResults = await Promise.allSettled(
+                items.map((item) =>
+                    getProductById(item.productId),
+                ),
             );
 
-            const orderItems = [];
             const problems = [];
+            const sellerGroups = new Map();
 
-            fresh.forEach((result, index) => {
+            freshResults.forEach((result, index) => {
                 const cartItem = items[index];
 
                 if (result.status === "rejected") {
-                    problems.push(`${cartItem.name} is no longer available.`);
+                    problems.push(
+                        `${cartItem.name} is no longer available.`,
+                    );
                     return;
                 }
 
@@ -124,7 +112,7 @@ function Checkout() {
 
                 if (!product.isPubliclyListed) {
                     problems.push(
-                        `${product.name} is sold by a vendor that is not verified yet.`,
+                        `${product.name} belongs to a vendor that has not been verified.`,
                     );
                     return;
                 }
@@ -133,15 +121,38 @@ function Checkout() {
                     problems.push(
                         product.stock < 1
                             ? `${product.name} is sold out.`
-                            : `Only ${product.stock} × ${product.name} left.`,
+                            : `Only ${product.stock} × ${product.name} remain.`,
                     );
                     return;
                 }
 
-                orderItems.push({
+                if (!product.sellerUserId) {
+                    problems.push(
+                        `${product.name} has no valid seller account.`,
+                    );
+                    return;
+                }
+
+                /*
+                 * Each seller receives a separate order. This avoids
+                 * combining different sellers' payments into one order.
+                 */
+                const sellerKey = String(product.sellerUserId);
+
+                if (!sellerGroups.has(sellerKey)) {
+                    sellerGroups.set(sellerKey, {
+                        sellerId: product.sellerUserId,
+                        sellerName: product.seller || "Seller",
+                        items: [],
+                    });
+                }
+
+                sellerGroups.get(sellerKey).items.push({
                     productId: product.id,
                     quantity: cartItem.quantity,
                     unitPrice: product.priceValue,
+                    cartProductId: cartItem.productId,
+                    productName: product.name,
                 });
             });
 
@@ -149,68 +160,124 @@ function Checkout() {
                 setError(
                     `Please review your cart: ${problems.join(" ")}`,
                 );
-
-                setSubmitting(false);
                 return;
             }
 
-            const orderTotal = orderItems.reduce(
-                (total, item) => total + item.unitPrice * item.quantity,
-                0,
-            );
-
-            const order = await createOrder({
-                buyer: user,
-                items: orderItems,
-                paymentMethod,
-                shippingAddress: address.trim(),
-            });
-
-            /*
-             * The order exists at this point. A failed payment record
-             * must not lose it, so failures are only reported.
-             */
+            const placedOrders = [];
+            const failedSellers = [];
             let paymentWarning = false;
 
-            try {
-                await createPaymentForOrder({
-                    orderId: order.orderId,
-                    buyerId: user.userId,
-                    amount: order.totalAmount || orderTotal,
-                    method: paymentMethod,
-                });
-            } catch {
-                paymentWarning = true;
+            /*
+             * Process seller orders independently.
+             * One failed seller order does not hide successfully
+             * created orders or remove failed items from the cart.
+             */
+            for (const group of sellerGroups.values()) {
+                try {
+                    const order = await createOrder({
+                        buyer: user,
+                        items: group.items.map((item) => ({
+                            productId: item.productId,
+                            quantity: item.quantity,
+                            unitPrice: item.unitPrice,
+                        })),
+                        paymentMethod,
+                        shippingAddress: handoverDetails.trim(),
+                    });
+
+                    placedOrders.push({
+                        order,
+                        group,
+                    });
+
+                    /*
+                     * This records a pending payment arrangement.
+                     * It is not proof that Cash or EFT was received.
+                     */
+                    try {
+                        await createPaymentForOrder({
+                            orderId: order.orderId,
+                            buyerId: user.userId,
+                            amount: order.totalAmount,
+                            method: paymentMethod,
+                            status: "PENDING",
+                        });
+                    } catch {
+                        paymentWarning = true;
+                    }
+                } catch {
+                    failedSellers.push(group.sellerName);
+                }
             }
 
-            clearCart();
+            if (placedOrders.length === 0) {
+                setError(
+                    "No order could be placed. Your cart has been kept so you can try again.",
+                );
+                return;
+            }
 
-            showToast(
-                paymentWarning
-                    ? "Order placed — we couldn't store the payment reference"
-                    : "Order placed successfully",
-            );
+            /*
+             * Remove only items belonging to orders that were
+             * successfully created.
+             */
+            const successfullyOrderedIds = new Set();
 
-            navigate(`/orders/${order.orderId}`, {
-                replace: true,
-                state: {
-                    justPlaced: true,
-                    paymentWarning,
-                },
+            placedOrders.forEach(({ group }) => {
+                group.items.forEach((item) => {
+                    successfullyOrderedIds.add(
+                        String(item.cartProductId),
+                    );
+                });
             });
-        } catch (requestError) {
-            const status = requestError?.response?.status;
 
+            successfullyOrderedIds.forEach((productId) => {
+                removeItem(productId);
+            });
+
+            if (failedSellers.length > 0) {
+                showToast(
+                    "Some orders could not be placed. Those items remain in your cart.",
+                );
+            } else if (paymentWarning) {
+                showToast(
+                    "Orders created. Some pending payment references could not be saved.",
+                );
+            } else {
+                showToast(
+                    "Order request sent. Payment remains pending until arranged with the seller.",
+                );
+            }
+
+            /*
+             * Open an individual order when there is one.
+             * With several sellers, show the order list.
+             */
+            if (
+                placedOrders.length === 1 &&
+                failedSellers.length === 0
+            ) {
+                navigate(
+                    `/orders/${placedOrders[0].order.orderId}`,
+                    {
+                        replace: true,
+                        state: {
+                            justPlaced: true,
+                            paymentWarning,
+                        },
+                    },
+                );
+            } else {
+                navigate("/orders", {
+                    replace: true,
+                });
+            }
+        } catch (requestError) {
             setError(
-                status === 409
-                    ? getErrorMessage(
-                        requestError,
-                        "One of your items sold out before the order was placed.",
-                    )
-                    : getErrorMessage(
-                        requestError,
-                        "We couldn't place your order. Please try again.",
-                    ),
+                getErrorMessage(
+                    requestError,
+                    "We couldn't place your order. Please try again.",
+                ),
             );
         } finally {
             setSubmitting(false);
@@ -220,7 +287,9 @@ function Checkout() {
     if (items.length === 0) {
         return (
             <div className="screen">
-                <TopBar onBell={() => navigate("/notifications")} />
+                <TopBar
+                    onBell={() => navigate("/notifications")}
+                />
 
                 <div className="scroll-area route-content">
                     <StateMessage
@@ -239,7 +308,9 @@ function Checkout() {
 
     return (
         <div className="screen">
-            <TopBar onBell={() => navigate("/notifications")} />
+            <TopBar
+                onBell={() => navigate("/notifications")}
+            />
 
             <div className="scroll-area route-content checkout-content">
                 <div className="page-header">
@@ -262,7 +333,10 @@ function Checkout() {
                 </div>
 
                 {hasUnavailable && (
-                    <Banner tone="warning" icon="bi-exclamation-triangle">
+                    <Banner
+                        tone="warning"
+                        icon="bi-exclamation-triangle"
+                    >
                         Some items are no longer available.{" "}
                         <button
                             type="button"
@@ -276,30 +350,48 @@ function Checkout() {
                 )}
 
                 <section className="section-card">
-                    <h2 className="section-title">Collection / delivery address</h2>
+                    <h2 className="section-title">
+                        Collection / delivery plan
+                    </h2>
 
                     <p className="section-hint">
-                        This is shared with the seller so you can agree on a safe
-                        exchange point or campus delivery.
+                        Describe a safe collection point or delivery
+                        arrangement. Avoid entering your full home
+                        address unless it is genuinely necessary.
                     </p>
 
                     <textarea
-                        className={`text-area ${addressTouched && !addressIsValid ? "invalid" : ""}`}
+                        className={`text-area ${
+                            detailsTouched && !handoverDetailsValid
+                                ? "invalid"
+                                : ""
+                        }`}
                         rows="3"
-                        maxLength={MAX_ADDRESS_LENGTH}
-                        value={address}
-                        onChange={(event) => setAddress(event.target.value)}
-                        onBlur={() => setAddressTouched(true)}
-                        placeholder="e.g. 12 Campus Road, Residence Block B, Room 214"
+                        maxLength={MAX_DETAILS_LENGTH}
+                        value={handoverDetails}
+                        onChange={(event) =>
+                            setHandoverDetails(event.target.value)
+                        }
+                        onBlur={() => setDetailsTouched(true)}
+                        placeholder="e.g. I can meet at the CPUT main entrance after 14:00."
                     />
 
                     <p className="field-help">
-                        {address.trim().length}/{MAX_ADDRESS_LENGTH} characters
+                        {handoverDetails.trim().length}/
+                        {MAX_DETAILS_LENGTH} characters
                     </p>
                 </section>
 
                 <section className="section-card">
-                    <h2 className="section-title">Payment method</h2>
+                    <h2 className="section-title">
+                        Payment method
+                    </h2>
+
+                    <p className="section-hint">
+                        Community Store does not collect or store your
+                        card details. Choose how you and the seller
+                        will arrange payment.
+                    </p>
 
                     <div className="payment-grid">
                         {PAYMENT_METHODS.map((method) => (
@@ -307,9 +399,14 @@ function Checkout() {
                                 type="button"
                                 key={method.value}
                                 className={`payment-option ${
-                                    paymentMethod === method.value ? "selected" : ""
+                                    paymentMethod === method.value
+                                        ? "selected"
+                                        : ""
                                 }`}
-                                onClick={() => setPaymentMethod(method.value)}
+                                onClick={() =>
+                                    setPaymentMethod(method.value)
+                                }
+                                disabled={submitting}
                             >
                                 <i
                                     className={`bi ${
@@ -320,49 +417,87 @@ function Checkout() {
                                 />
 
                                 <span>
-                  <strong>{method.label}</strong>
-                  <small>{method.hint}</small>
-                </span>
+                                    <strong>{method.label}</strong>
+                                    <small>{method.hint}</small>
+                                </span>
                             </button>
                         ))}
                     </div>
 
+                    {paymentMethod === "CASH" ? (
+                        <Banner
+                            tone="info"
+                            icon="bi-people"
+                            title="Cash payment"
+                        >
+                            Agree on a safe public meetup. Inspect
+                            the item before paying, and do not mark
+                            the payment as completed until the cash
+                            has actually changed hands.
+                        </Banner>
+                    ) : (
+                        <Banner
+                            tone="info"
+                            icon="bi-bank"
+                            title="EFT payment"
+                        >
+                            Confirm the order with the seller before
+                            transferring money. Do not share banking
+                            details in a public listing or send money
+                            merely because an order was created.
+                        </Banner>
+                    )}
+
                     <p className="section-hint">
-                        Payments are recorded against the order. Real card processing
-                        is part of the security-hardening phase.
+                        Online card payments are not enabled yet.
+                        They require a configured payment gateway
+                        and verified payment confirmation.
                     </p>
                 </section>
 
                 <section className="section-card">
-                    <h2 className="section-title">Order summary</h2>
+                    <h2 className="section-title">
+                        Order summary
+                    </h2>
 
                     <div className="summary-list">
                         {items.map((item) => (
-                            <div key={item.productId} className="summary-line">
-                    <span className="summary-line-name">
-                      {item.quantity} × {item.name}
-                    </span>
+                            <div
+                                key={item.productId}
+                                className="summary-line"
+                            >
+                                <span className="summary-line-name">
+                                    {item.quantity} × {item.name}
+                                </span>
 
                                 <span>
-                  {formatCurrency(item.price * item.quantity)}
-                </span>
+                                    {formatCurrency(
+                                        item.price * item.quantity,
+                                    )}
+                                </span>
                             </div>
                         ))}
                     </div>
 
                     <div className="summary-row total">
                         <span>Total</span>
-                        <strong>{formatCurrency(subtotal)}</strong>
+                        <strong>
+                            {formatCurrency(subtotal)}
+                        </strong>
                     </div>
 
                     <p className="summary-note">
-                        The backend recalculates the total from the current listing
-                        prices when the order is created.
+                        Each seller gets a separate order. The backend
+                        rechecks prices and stock before saving it.
                     </p>
                 </section>
 
                 {error && (
-                    <Banner tone="error" icon="bi-exclamation-octagon" title="Checkout paused">
+                    <Banner
+                        tone="error"
+                        icon="bi-exclamation-octagon"
+                        title="Checkout paused"
+                    >
                         {error}
                     </Banner>
                 )}
@@ -374,8 +509,8 @@ function Checkout() {
                     disabled={submitting || hasUnavailable}
                 >
                     {submitting
-                        ? "Placing your order..."
-                        : `Place order · ${formatCurrency(subtotal)}`}
+                        ? "Submitting order..."
+                        : `Submit order · ${formatCurrency(subtotal)}`}
                 </button>
 
                 <button

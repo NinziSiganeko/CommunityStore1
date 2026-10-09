@@ -201,8 +201,9 @@ function OrderDetails() {
 
                 {justPlaced && (
                     <Banner tone="success" icon="bi-check-circle" title="Order placed">
-                        Thanks! Your order is confirmed. Arrange collection with the
-                        seller using the contact details below.
+                        Your order request has been created. The seller still needs
+                        to confirm the arrangement. Your payment is pending; this
+                        screen does not mean that money has been received.
 
                         {location.state?.paymentWarning && (
                             <span className="banner-subnote">
@@ -226,7 +227,21 @@ function OrderDetails() {
                         <p>{formatDateTime(order.orderDate)}</p>
                     </div>
 
-                    <span className="status-pill ok">Confirmed</span>
+                    <span
+                        className={`status-pill ${
+                            order.status === "PENDING_SELLER_CONFIRMATION"
+                                ? "warn"
+                                : order.status === "CANCELLED"
+                                    ? "danger"
+                                    : "ok"
+                        }`}
+                    >
+                       {order.status === "PENDING_SELLER_CONFIRMATION"
+                         ? "Awaiting seller"
+                            : order.status === "CANCELLED"
+                               ? "Cancelled"
+                                  : order.status}
+                     </span>
                 </div>
 
                 <section className="section-card">

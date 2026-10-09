@@ -126,7 +126,21 @@ function Orders() {
                                         <span>{formatDate(order.orderDate)}</span>
                                     </div>
 
-                                    <span className="status-pill ok">Confirmed</span>
+                                    <span
+                                        className={`status-pill ${
+                                            order.status === "PENDING_SELLER_CONFIRMATION"
+                                                ? "warn"
+                                                : order.status === "CANCELLED"
+                                                    ? "danger"
+                                                    : "ok"
+                                        }`}
+                                    >
+                                        {order.status === "PENDING_SELLER_CONFIRMATION"
+                                            ? "Awaiting seller"
+                                             : order.status === "CANCELLED"
+                                                ? "Cancelled"
+                                                : order.status}
+                                      </span>
                                 </div>
 
                                 <div className="order-thumbs">

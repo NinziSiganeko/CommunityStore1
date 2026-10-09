@@ -1,12 +1,14 @@
 package com.communitystore.service;
 
 import com.communitystore.domain.User;
+import com.communitystore.domain.UserType;
 import com.communitystore.domain.CustomerOrder;
 import com.communitystore.domain.OrderItem;
 import com.communitystore.domain.Product;
 import com.communitystore.factory.CustomerOrderFactory;
 import com.communitystore.repository.CustomerOrderRepository;
 import com.communitystore.repository.ProductRepository;
+import com.communitystore.repository.UserRepository;
 import com.communitystore.util.Helper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,60 +26,128 @@ public class CustomerOrderService implements ICustomerOrderService {
 
     @Autowired
     private ProductRepository productRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     @Transactional
     public CustomerOrder create(CustomerOrder order) {
-        // Generate order number if missing
-        if (order.getOrderNumber() == null || order.getOrderNumber().isEmpty()) {
+
+        if (order == null || order.getBuyer() == null) {
+            throw new IllegalArgumentException(
+                    "Order and buyer details are required"
+            );
+        }
+
+        Long buyerId = order.getBuyer().getUserId();
+
+        User buyer = userRepository.findById(buyerId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Buyer account not found")
+                );
+
+        order.setBuyer(buyer);
+
+        if (order.getOrderItems() == null
+                || order.getOrderItems().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "An order must contain at least one item"
+            );
+        }
+
+        /*
+         * Prices and stock must be verified against the database,
+         * not trusted from the browser.
+         *
+         * The transaction ensures stock changes are rolled back
+         * if any item cannot be purchased.
+         */
+        for (OrderItem item : order.getOrderItems()) {
+
+            if (item.getProduct() == null
+                    || item.getProduct().getProductId() == null) {
+                throw new IllegalArgumentException(
+                        "Each order item must contain a valid product"
+                );
+            }
+
+            if (item.getQuantity() == null
+                    || item.getQuantity() <= 0) {
+                throw new IllegalArgumentException(
+                        "Each order item must have a positive quantity"
+                );
+            }
+
+            Product product = productRepository
+                    .findById(item.getProduct().getProductId())
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "A product in this order no longer exists"
+                            )
+                    );
+
+            if (product.getSeller() == null) {
+                throw new IllegalArgumentException(
+                        "This listing has no seller attached"
+                );
+            }
+
+            if (product.getSeller().getUserType() == UserType.VENDOR
+                    && !product.getSeller().isVerified()) {
+                throw new IllegalArgumentException(
+                        "A vendor must be verified before their products can be purchased"
+                );
+            }
+
+            if (product.getStock() < item.getQuantity()) {
+                throw new RuntimeException(
+                        "Insufficient stock for " + product.getName()
+                                + ". Available: " + product.getStock()
+                                + ", requested: " + item.getQuantity()
+                );
+            }
+
+            /*
+             * Replace the submitted item reference and unit price
+             * with the actual values from the database.
+             */
+            item.setProduct(product);
+            item.setUnitPrice(product.getPrice());
+            item.setOrder(order);
+
+            /*
+             * Reserve the stock for this order.
+             * Cancelling the order uses the existing service logic
+             * to return the stock.
+             */
+            product.setStock(
+                    product.getStock() - item.getQuantity()
+            );
+
+            productRepository.save(product);
+        }
+
+        /*
+         * Recalculate the total using the database prices.
+         */
+        order.setTotalAmount(order.calculateTotal());
+
+        if (order.getOrderNumber() == null
+                || order.getOrderNumber().isBlank()) {
             order.setOrderNumber(Helper.generateOrderNumber());
         }
 
-        // Set order date if missing
         if (order.getOrderDate() == null) {
             order.setOrderDate(LocalDateTime.now());
         }
 
-        // Calculate total if missing
-        if (order.getTotalAmount() == null) {
-            order.setTotalAmount(order.calculateTotal());
-        }
+        /*
+         * Creating an order does not mean the seller has accepted it.
+         * The payment is also handled separately.
+         */
+        order.setStatus("PENDING_SELLER_CONFIRMATION");
 
-        // CRITICAL: Update stock for each product before saving order
-        if (order.getOrderItems() != null) {
-            for (OrderItem item : order.getOrderItems()) {
-                if (item.getProduct() != null && item.getQuantity() != null) {
-                    // Get the product from database to ensure we have the latest stock
-                    Product product = productRepository.findById(item.getProduct().getProductId())
-                            .orElseThrow(() -> new RuntimeException("Product not found: " + item.getProduct().getProductId()));
-
-                    // Check if enough stock exists
-                    if (product.getStock() < item.getQuantity()) {
-                        throw new RuntimeException("Insufficient stock for product: " + product.getName() +
-                                ". Available: " + product.getStock() + ", Requested: " + item.getQuantity());
-                    }
-
-                    // Update stock
-                    int newStock = product.getStock() - item.getQuantity();
-                    product.setStock(newStock);
-                    productRepository.save(product);
-
-                    System.out.println(" Updated stock for " + product.getName() + ": " +
-                            product.getStock() + " -> " + newStock);
-                }
-            }
-        }
-
-        // Ensure all order items are properly linked to this order
-        if (order.getOrderItems() != null) {
-            for (OrderItem item : order.getOrderItems()) {
-                item.setOrder(order);
-            }
-        }
-
-        // Save the order
-        CustomerOrder savedOrder = orderRepository.save(order);
-        return savedOrder;
+        return orderRepository.save(order);
     }
 
     @Override

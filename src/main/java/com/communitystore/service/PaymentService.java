@@ -1,18 +1,19 @@
 package com.communitystore.service;
 
-
-import com.communitystore.domain.User;
 import com.communitystore.domain.CustomerOrder;
 import com.communitystore.domain.Payment;
 import com.communitystore.domain.PaymentMethod;
 import com.communitystore.domain.PaymentStatus;
+import com.communitystore.domain.User;
 import com.communitystore.repository.CustomerOrderRepository;
-import com.communitystore.repository.UserRepository;
 import com.communitystore.repository.PaymentRepository;
+import com.communitystore.repository.UserRepository;
 import com.communitystore.util.Helper;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,20 +28,21 @@ public class PaymentService implements IPaymentService {
 
     @Autowired
     private CustomerOrderRepository customerOrderRepository;
+
     /**
-     * Records a payment for an order that already exists.
+     * Creates an offline payment record for an existing order.
      *
-     * Previously this method created a brand-new order for every
-     * payment, which meant the payment was never linked to the
-     * checkout that produced it. The order is now looked up and
-     * reused, and the buyer is taken from the order when the
-     * request does not repeat it.
+     * The record remains PENDING because the application does not
+     * yet receive a verified result from a live payment gateway.
      */
     @Override
     @Transactional
     public Payment create(Payment payment) {
+
         if (payment == null) {
-            throw new IllegalArgumentException("Payment details are required.");
+            throw new IllegalArgumentException(
+                    "Payment details are required"
+            );
         }
 
         Long orderId = payment.getCustomerOrder() != null
@@ -48,75 +50,107 @@ public class PaymentService implements IPaymentService {
                 : null;
 
         if (!Helper.isValidId(orderId)) {
-            throw new IllegalArgumentException("A valid order is required before taking payment.");
+            throw new IllegalArgumentException(
+                    "A valid order is required before recording payment"
+            );
         }
 
-        CustomerOrder customerOrder = customerOrderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found."));
+        CustomerOrder order = customerOrderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Order not found")
+                );
 
-        Long buyerId = payment.getBuyer() != null
-                ? payment.getBuyer().getUserId()
-                : null;
-
-        if (buyerId == null && customerOrder.getBuyer() != null) {
-            buyerId = customerOrder.getBuyer().getUserId();
+        if (order.getBuyer() == null
+                || !Helper.isValidId(order.getBuyer().getUserId())) {
+            throw new IllegalArgumentException(
+                    "The order has no valid buyer"
+            );
         }
 
-        if (!Helper.isValidId(buyerId)) {
-            throw new IllegalArgumentException("Buyer information missing in payment request.");
+        /*
+         * Only these methods are enabled in the current checkout.
+         * Credit/debit card and wallet options must not be recorded
+         * as successful without an actual payment integration.
+         */
+        PaymentMethod method = payment.getMethod();
+
+        if (method != PaymentMethod.CASH
+                && method != PaymentMethod.EFT) {
+            throw new IllegalArgumentException(
+                    "Online payment is not available yet. Choose Cash or EFT."
+            );
         }
 
-        User buyer = userRepository.findById(buyerId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+        User buyer = userRepository.findById(
+                order.getBuyer().getUserId()
+        ).orElseThrow(() ->
+                new IllegalArgumentException("Buyer account not found")
+        );
 
-        double amount = payment.getAmount() > 0
-                ? payment.getAmount()
-                : (customerOrder.getTotalAmount() != null ? customerOrder.getTotalAmount() : 0.0);
+        double amount = order.getTotalAmount() != null
+                ? order.getTotalAmount()
+                : 0.0;
 
         if (amount <= 0) {
-            throw new IllegalArgumentException("Payment amount must be greater than zero.");
+            throw new IllegalArgumentException(
+                    "The order total must be greater than zero"
+            );
         }
 
-        PaymentStatus status = payment.getStatus() != null
-                ? payment.getStatus()
-                : PaymentStatus.COMPLETED;
-
+        /*
+         * Do not accept COMPLETED from the browser. For Cash and EFT,
+         * Community Store has no way to independently verify that the
+         * buyer has actually paid.
+         */
         Payment saved = new Payment.Builder()
                 .copy(payment)
                 .setAmount(amount)
-                .setMethod(payment.getMethod() != null ? payment.getMethod() : PaymentMethod.EFT)
-                .setStatus(status)
-                .setPaymentDate(payment.getPaymentDate() != null
-                        ? payment.getPaymentDate()
-                        : LocalDateTime.now())
-                .setTransactionReference(payment.getTransactionReference() != null
-                        ? payment.getTransactionReference()
-                        : Helper.generateTransactionReference())
+                .setMethod(method)
+                .setStatus(PaymentStatus.PENDING)
+                .setPaymentDate(LocalDateTime.now())
+                .setTransactionReference(
+                        Helper.generateTransactionReference()
+                )
                 .setBuyer(buyer)
-                .setCustomerOrder(customerOrder)
+                .setCustomerOrder(order)
                 .build();
 
         return paymentRepository.save(saved);
     }
+
     @Override
+    @Transactional(readOnly = true)
     public Payment read(Long paymentId) {
         return paymentRepository.findById(paymentId).orElse(null);
     }
 
+    /*
+     * Keep this service method for future gateway integration.
+     * The public controller must not allow buyers to self-report a
+     * payment as COMPLETED; that requires a trusted confirmation flow.
+     */
     @Override
+    @Transactional
     public Payment update(Payment payment) {
-        return paymentRepository.save(payment);
+        throw new UnsupportedOperationException(
+                "Payment status updates require a verified payment or confirmation workflow"
+        );
     }
 
     @Override
+    @Transactional
     public boolean delete(Long paymentId) {
+        if (!paymentRepository.existsById(paymentId)) {
+            return false;
+        }
+
         paymentRepository.deleteById(paymentId);
         return true;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Payment> getAll() {
         return paymentRepository.findAll();
     }
 }
-

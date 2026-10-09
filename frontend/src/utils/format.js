@@ -1,11 +1,3 @@
-/**
- * Shared display helpers.
- *
- * Keeping formatting in one place means the cart, checkout,
- * orders and profile screens always show the same values in the
- * same way.
- */
-
 const CURRENCY_FORMATTER = new Intl.NumberFormat("en-ZA", {
     style: "currency",
     currency: "ZAR",
@@ -13,13 +5,13 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat("en-ZA", {
 });
 
 function formatCurrency(value) {
-    return CURRENCY_FORMATTER.format(Number(value || 0)).replace(/\u00a0/g, " ");
+    return CURRENCY_FORMATTER
+        .format(Number(value || 0))
+        .replace(/\u00a0/g, " ");
 }
 
 function formatDate(value) {
-    if (!value) {
-        return "Date unavailable";
-    }
+    if (!value) return "Date unavailable";
 
     const date = new Date(value);
 
@@ -35,9 +27,7 @@ function formatDate(value) {
 }
 
 function formatDateTime(value) {
-    if (!value) {
-        return "Date unavailable";
-    }
+    if (!value) return "Date unavailable";
 
     const date = new Date(value);
 
@@ -55,9 +45,7 @@ function formatDateTime(value) {
 }
 
 function normalize(value) {
-    return String(value ?? "")
-        .trim()
-        .toLowerCase();
+    return String(value ?? "").trim().toLowerCase();
 }
 
 function initials(value) {
@@ -66,17 +54,13 @@ function initials(value) {
         .split(/\s+/)
         .filter(Boolean);
 
-    if (parts.length === 0) {
-        return "U";
-    }
+    if (parts.length === 0) return "U";
 
     return parts
         .slice(0, 2)
         .map((part) => part.charAt(0).toUpperCase())
         .join("");
 }
-
-/* ── Product conditions ───────────────────────────────────── */
 
 const PRODUCT_CONDITIONS = [
     { value: "NEW", label: "New" },
@@ -87,43 +71,52 @@ const PRODUCT_CONDITIONS = [
 
 function conditionLabel(value) {
     const match = PRODUCT_CONDITIONS.find(
-        (condition) => condition.value === String(value || "").toUpperCase(),
+        (condition) =>
+            condition.value === String(value || "").toUpperCase(),
     );
 
     return match ? match.label : "Not specified";
 }
 
-/* ── Payment methods ──────────────────────────────────────── */
-
+/*
+ * These are the offline payment methods we can honestly support
+ * in the current version.
+ *
+ * Card payments must remain unavailable until a payment gateway
+ * is configured and its payment confirmation is verified.
+ */
 const PAYMENT_METHODS = [
     {
-        value: "CREDIT_CARD",
-        label: "Credit card",
-        hint: "Visa or Mastercard",
-    },
-    {
-        value: "DEBIT_CARD",
-        label: "Debit card",
-        hint: "Cheque or savings card",
+        value: "CASH",
+        label: "Cash at meetup",
+        hint: "Pay in person at the agreed collection point.",
     },
     {
         value: "EFT",
-        label: "Bank transfer (EFT)",
-        hint: "Pay from your banking app",
-    },
-    {
-        value: "CASH",
-        label: "Cash on collection",
-        hint: "Pay at the agreed pickup point",
+        label: "EFT directly to seller",
+        hint: "Arrange the transfer after the seller confirms.",
     },
 ];
 
-function paymentMethodLabel(value) {
-    const match = PAYMENT_METHODS.find(
-        (method) => method.value === String(value || "").toUpperCase(),
-    );
+/*
+ * Keep labels for older orders, but do not offer the older online
+ * methods in the checkout selection until they are integrated.
+ */
+const PAYMENT_METHOD_LABELS = {
+    CASH: "Cash at meetup",
+    EFT: "EFT directly to seller",
+    BANK_TRANSFER: "Bank transfer",
+    CREDIT_CARD: "Credit card",
+    DEBIT_CARD: "Debit card",
+    PAYPAL: "PayPal",
+    APPLE_PAY: "Apple Pay",
+    GOOGLE_PAY: "Google Pay",
+};
 
-    return match ? match.label : "Not specified";
+function paymentMethodLabel(value) {
+    const key = String(value || "").toUpperCase();
+
+    return PAYMENT_METHOD_LABELS[key] || "Not specified";
 }
 
 export {
