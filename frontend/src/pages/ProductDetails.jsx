@@ -13,6 +13,12 @@ import { getCurrentUser } from "../services/authService.js";
 import { getProductById } from "../services/productService.js";
 import { conditionLabel } from "../utils/format.js";
 
+const QUICK_CHAT_PROMPTS = [
+  "Hi! Is this item still available?",
+  "Can we arrange a safe campus meetup?",
+  "Would you prefer cash or EFT?",
+];
+
 function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
