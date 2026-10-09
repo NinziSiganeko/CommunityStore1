@@ -1,8 +1,8 @@
 import {
-    Navigate,
-    Route,
-    Routes,
-    useLocation,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
 } from "react-router-dom";
 
 import Home from "../pages/Home.jsx";
@@ -12,154 +12,194 @@ import Login from "../pages/Login.jsx";
 import Register from "../pages/Register.jsx";
 import Sell from "../pages/Sell.jsx";
 import Profile from "../pages/Profile.jsx";
-import RoutePlaceholder from "../pages/RoutePlaceholder.jsx";
+import Cart from "../pages/Cart.jsx";
+import Checkout from "../pages/Checkout.jsx";
+import Orders from "../pages/Orders.jsx";
+import OrderDetails from "../pages/OrderDetails.jsx";
+import MyListings from "../pages/MyListings.jsx";
+import Wishlist from "../pages/Wishlist.jsx";
+import AdminDashboard from "../pages/AdminDashboard.jsx";
+import Chat from "../pages/Chat.jsx";
+import Bulletin from "../pages/Bulletin.jsx";
+import Notifications from "../pages/Notifications.jsx";
 import MainLayout from "../mainlayout/MainLayout.jsx";
 
 import {
-    isAuthenticated,
+  isAuthenticated,
 } from "../services/authService.js";
 
 function RequireAuth({ children }) {
-    const location = useLocation();
+  const location = useLocation();
 
-    if (!isAuthenticated()) {
-        return (
-            <Navigate
-                to="/login"
-                replace
-                state={{
-                    from: location.pathname,
-                }}
-            />
-        );
-    }
+  if (!isAuthenticated()) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: `${location.pathname}${location.search || ""}`,
+        }}
+      />
+    );
+  }
 
-    return children;
+  return children;
 }
 
 function AuthOnly({ children }) {
-    if (isAuthenticated()) {
-        return (
-            <Navigate
-                to="/"
-                replace
-            />
-        );
-    }
+  if (isAuthenticated()) {
+    return (
+      <Navigate
+        to="/"
+        replace
+      />
+    );
+  }
 
-    return children;
+  return children;
 }
 
-function AppRoutes({ toast, onToast }) {
-    return (
-        <Routes>
-            <Route
-                element={
-                    <MainLayout toast={toast} />
-                }
-            >
-                <Route
-                    path="/"
-                    element={<Home onToast={onToast} />}
-                />
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route element={<MainLayout />}>
+        <Route
+          path="/"
+          element={<Home />}
+        />
 
-                <Route
-                    path="/marketplace"
-                    element={
-                        <Marketplace onToast={onToast} />
-                    }
-                />
+        <Route
+          path="/marketplace"
+          element={<Marketplace />}
+        />
 
-                <Route
-                    path="/product/:id"
-                    element={
-                        <ProductDetails
-                            onToast={onToast}
-                        />
-                    }
-                />
+        <Route
+          path="/product/:id"
+          element={<ProductDetails />}
+        />
 
-                <Route
-                    path="/login"
-                    element={
-                        <AuthOnly>
-                            <Login onToast={onToast} />
-                        </AuthOnly>
-                    }
-                />
+        <Route
+          path="/cart"
+          element={<Cart />}
+        />
 
-                <Route
-                    path="/register"
-                    element={
-                        <AuthOnly>
-                            <Register onToast={onToast} />
-                        </AuthOnly>
-                    }
-                />
+        <Route
+          path="/wishlist"
+          element={<Wishlist />}
+        />
 
-                <Route
-                    path="/sell"
-                    element={
-                        <RequireAuth>
-                            <Sell onToast={onToast} />
-                        </RequireAuth>
-                    }
-                />
+        <Route
+          path="/bulletin"
+          element={<Bulletin />}
+        />
 
-                <Route
-                    path="/profile"
-                    element={
-                        <RequireAuth>
-                            <Profile onToast={onToast} />
-                        </RequireAuth>
-                    }
-                />
+        <Route
+          path="/notifications"
+          element={<Notifications />}
+        />
 
-                {[
-                    ["cart", "Cart"],
-                    ["checkout", "Checkout"],
-                    ["orders", "Orders"],
-                    [
-                        "notifications",
-                        "Notifications",
-                    ],
-                    ["chat", "Chat & Community"],
-                    ["bulletin", "Bulletin"],
-                    ["wishlist", "Wishlist"],
-                    [
-                        "my-listings",
-                        "My Listings",
-                    ],
-                    [
-                        "admin",
-                        "Admin Dashboard",
-                    ],
-                ].map(
-                    ([path, title]) => (
-                        <Route
-                            key={path}
-                            path={`/${path}`}
-                            element={
-                                <RoutePlaceholder
-                                    title={title}
-                                />
-                            }
-                        />
-                    ),
-                )}
-            </Route>
+        <Route
+          path="/login"
+          element={
+            <AuthOnly>
+              <Login />
+            </AuthOnly>
+          }
+        />
 
-            <Route
-                path="*"
-                element={
-                    <Navigate
-                        to="/"
-                        replace
-                    />
-                }
-            />
-        </Routes>
-    );
+        <Route
+          path="/register"
+          element={
+            <AuthOnly>
+              <Register />
+            </AuthOnly>
+          }
+        />
+
+        <Route
+          path="/sell"
+          element={
+            <RequireAuth>
+              <Sell />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <Profile />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/checkout"
+          element={
+            <RequireAuth>
+              <Checkout />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/orders"
+          element={
+            <RequireAuth>
+              <Orders />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/orders/:orderId"
+          element={
+            <RequireAuth>
+              <OrderDetails />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/my-listings"
+          element={
+            <RequireAuth>
+              <MyListings />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/chat"
+          element={
+            <RequireAuth>
+              <Chat />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            <RequireAuth>
+              <AdminDashboard />
+            </RequireAuth>
+          }
+        />
+      </Route>
+
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to="/"
+            replace
+          />
+        }
+      />
+    </Routes>
+  );
 }
 
 export default AppRoutes;

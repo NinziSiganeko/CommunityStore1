@@ -1,20 +1,19 @@
-import { useRef, useState } from "react";
 import { BrowserRouter } from "react-router-dom";
+
 import AppRoutes from "./routes/AppRoutes.jsx";
+import { CartProvider } from "./context/CartContext.jsx";
+import { ToastProvider } from "./context/ToastContext.jsx";
 
 function App() {
-  const [toast, setToast] = useState(null);
-  const toastTimer = useRef(null);
-
-  function showToast(message) {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast(message);
-    toastTimer.current = setTimeout(() => setToast(null), 2200);
-  }
-
-  return <BrowserRouter>
-    <AppRoutes toast={toast} onToast={showToast} />
-  </BrowserRouter>;
+  return (
+      <BrowserRouter>
+        <ToastProvider>
+          <CartProvider>
+            <AppRoutes />
+          </CartProvider>
+        </ToastProvider>
+      </BrowserRouter>
+  );
 }
 
 export default App;

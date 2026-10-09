@@ -17,6 +17,20 @@ public class Product {
     @Lob
     @Column(length = 10485760)
     private byte[] productImage;
+
+    /**
+     * Physical condition of the item.
+     *
+     * The column is named "product_condition" because
+     * "condition" is a reserved word in MySQL.
+     *
+     * Existing rows are allowed to be null, which the
+     * marketplace shows as "Not specified".
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "product_condition", length = 20)
+    private ProductCondition condition;
+
     @ManyToOne
     @JoinColumn(name = "category_id")
     private ProductCategory category;
@@ -33,7 +47,9 @@ public class Product {
         this.price = builder.price;
         this.stock = builder.stock;
         this.productImage = builder.productImage;
+        this.condition = builder.condition;
         this.category = builder.category;
+        this.seller = builder.seller;
     }
 
     // ================= Getters =================
@@ -42,12 +58,14 @@ public class Product {
     public double getPrice() { return price; }
     public int getStock() { return stock; }
     public byte[] getProductImage() { return productImage; }
+    public ProductCondition getCondition() { return condition; }
     public ProductCategory getCategory() { return category; }
     public User getSeller() { return seller; }
 
     // ================= Setters =================
     public void setStock(int stock) { this.stock = stock; } // ← ADD THIS SETTER
     public void setProductImage(byte[] productImage) { this.productImage = productImage; }
+    public void setCondition(ProductCondition condition) { this.condition = condition; }
     public void setCategory(ProductCategory category) { this.category = category; }
     public void setSeller(User seller) { this.seller = seller; }
 
@@ -58,7 +76,9 @@ public class Product {
         private double price;
         private int stock;
         private byte[] productImage;
+        private ProductCondition condition;
         private ProductCategory category;
+        private User seller;
 
         public Builder setProductId(Long productId) {
             this.productId = productId;
@@ -85,8 +105,25 @@ public class Product {
             return this;
         }
 
+        public Builder setCondition(ProductCondition condition) {
+            this.condition = condition;
+            return this;
+        }
+
         public Builder setCategory(ProductCategory category) {
             this.category = category;
+            return this;
+        }
+
+        /**
+         * Preserves the listing owner.
+         *
+         * This matters for updates: rebuilding a product
+         * without the seller would otherwise detach the
+         * listing from its owner.
+         */
+        public Builder setSeller(User seller) {
+            this.seller = seller;
             return this;
         }
 
@@ -96,7 +133,9 @@ public class Product {
             this.price = product.price;
             this.stock = product.stock;
             this.productImage = product.productImage;
+            this.condition = product.condition;
             this.category = product.category;
+            this.seller = product.seller;
             return this;
         }
 
@@ -113,7 +152,9 @@ public class Product {
                 ", price=" + price +
                 ", stock=" + stock +
                 ", productImage=" + (productImage != null ? "[image data]" : "null") +
+                ", condition=" + condition +
                 ", category=" + (category != null ? category.getCategoryName() : "null") +
+                ", seller=" + (seller != null ? seller.getUserId() : "null") +
                 '}';
     }
 
