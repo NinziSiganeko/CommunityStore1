@@ -236,11 +236,15 @@ function OrderDetails() {
                                     : "ok"
                         }`}
                     >
-                       {order.status === "PENDING_SELLER_CONFIRMATION"
-                         ? "Awaiting seller"
-                            : order.status === "CANCELLED"
-                               ? "Cancelled"
-                                  : order.status}
+                        {order.status === "PENDING_SELLER_CONFIRMATION"
+                            ? "Awaiting seller"
+                            : order.status === "CONFIRMED"
+                                ? "Accepted — payment pending"
+                                : order.status === "REJECTED"
+                                    ? "Request rejected"
+                                    : order.status === "CANCELLED"
+                                        ? "Cancelled"
+                                        : order.status}
                      </span>
                 </div>
 

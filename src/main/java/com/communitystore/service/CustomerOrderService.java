@@ -13,8 +13,6 @@ import com.communitystore.util.Helper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -33,15 +31,15 @@ public class CustomerOrderService implements ICustomerOrderService {
     @Transactional
     public CustomerOrder create(CustomerOrder order) {
 
-        if (order == null || order.getBuyer() == null) {
+        if (order == null || order.getBuyer() == null
+                || order.getBuyer().getUserId() == null) {
             throw new IllegalArgumentException(
                     "Order and buyer details are required"
             );
         }
 
-        Long buyerId = order.getBuyer().getUserId();
-
-        User buyer = userRepository.findById(buyerId)
+        User buyer = userRepository
+                .findById(order.getBuyer().getUserId())
                 .orElseThrow(() ->
                         new IllegalArgumentException("Buyer account not found")
                 );
@@ -55,13 +53,8 @@ public class CustomerOrderService implements ICustomerOrderService {
             );
         }
 
-        /*
-         * Prices and stock must be verified against the database,
-         * not trusted from the browser.
-         *
-         * The transaction ensures stock changes are rolled back
-         * if any item cannot be purchased.
-         */
+        Long sellerId = null;
+
         for (OrderItem item : order.getOrderItems()) {
 
             if (item.getProduct() == null
@@ -71,8 +64,7 @@ public class CustomerOrderService implements ICustomerOrderService {
                 );
             }
 
-            if (item.getQuantity() == null
-                    || item.getQuantity() <= 0) {
+            if (item.getQuantity() == null || item.getQuantity() <= 0) {
                 throw new IllegalArgumentException(
                         "Each order item must have a positive quantity"
                 );
@@ -95,41 +87,35 @@ public class CustomerOrderService implements ICustomerOrderService {
             if (product.getSeller().getUserType() == UserType.VENDOR
                     && !product.getSeller().isVerified()) {
                 throw new IllegalArgumentException(
-                        "A vendor must be verified before their products can be purchased"
+                        "This vendor must be verified before products can be purchased"
                 );
             }
 
+            // One order has one seller because the order has one status.
+            Long currentSellerId = product.getSeller().getUserId();
+
+            if (sellerId == null) {
+                sellerId = currentSellerId;
+            } else if (!sellerId.equals(currentSellerId)) {
+                throw new IllegalArgumentException(
+                        "Please place separate orders for items from different sellers"
+                );
+            }
+
+            // Check stock now, but do not deduct it until the seller accepts.
             if (product.getStock() < item.getQuantity()) {
-                throw new RuntimeException(
+                throw new IllegalArgumentException(
                         "Insufficient stock for " + product.getName()
                                 + ". Available: " + product.getStock()
                                 + ", requested: " + item.getQuantity()
                 );
             }
 
-            /*
-             * Replace the submitted item reference and unit price
-             * with the actual values from the database.
-             */
             item.setProduct(product);
             item.setUnitPrice(product.getPrice());
             item.setOrder(order);
-
-            /*
-             * Reserve the stock for this order.
-             * Cancelling the order uses the existing service logic
-             * to return the stock.
-             */
-            product.setStock(
-                    product.getStock() - item.getQuantity()
-            );
-
-            productRepository.save(product);
         }
 
-        /*
-         * Recalculate the total using the database prices.
-         */
         order.setTotalAmount(order.calculateTotal());
 
         if (order.getOrderNumber() == null
@@ -141,10 +127,7 @@ public class CustomerOrderService implements ICustomerOrderService {
             order.setOrderDate(LocalDateTime.now());
         }
 
-        /*
-         * Creating an order does not mean the seller has accepted it.
-         * The payment is also handled separately.
-         */
+        // The seller has not accepted the request yet.
         order.setStatus("PENDING_SELLER_CONFIRMATION");
 
         return orderRepository.save(order);
@@ -168,28 +151,152 @@ public class CustomerOrderService implements ICustomerOrderService {
     @Override
     @Transactional
     public boolean delete(Long orderId) {
-        if (orderRepository.existsById(orderId)) {
-            // Optional: Restore stock when order is deleted
-            CustomerOrder order = orderRepository.findById(orderId).orElse(null);
-            if (order != null && order.getOrderItems() != null) {
-                for (OrderItem item : order.getOrderItems()) {
-                    if (item.getProduct() != null && item.getQuantity() != null) {
-                        Product product = productRepository.findById(item.getProduct().getProductId()).orElse(null);
-                        if (product != null) {
-                            int newStock = product.getStock() + item.getQuantity();
-                            product.setStock(newStock);
-                            productRepository.save(product);
-                            System.out.println(" Restored stock for " + product.getName() + ": " +
-                                    product.getStock() + " -> " + newStock);
-                        }
-                    }
+
+        CustomerOrder order = orderRepository.findById(orderId).orElse(null);
+
+        if (order == null) {
+            return false;
+        }
+
+        // Stock was deducted only for accepted orders.
+        if ("CONFIRMED".equals(order.getStatus())
+                && order.getOrderItems() != null) {
+
+            for (OrderItem item : order.getOrderItems()) {
+                if (item.getProduct() == null || item.getQuantity() == null) {
+                    continue;
+                }
+
+                Product product = productRepository
+                        .findById(item.getProduct().getProductId())
+                        .orElse(null);
+
+                if (product != null) {
+                    product.setStock(product.getStock() + item.getQuantity());
+                    productRepository.save(product);
                 }
             }
-            orderRepository.deleteById(orderId);
-            return true;
         }
-        return false;
+
+        orderRepository.delete(order);
+        return true;
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CustomerOrder> getOrdersForSeller(Long sellerId) {
+
+        if (sellerId == null) {
+            throw new IllegalArgumentException("Seller ID is required");
+        }
+
+        // Creation now prevents mixed-seller orders, so these are
+        // the orders the seller can respond to.
+        return orderRepository.findOrdersForSeller(sellerId);
+    }
+
+    @Override
+    @Transactional
+    public CustomerOrder respondToOrder(
+            Long orderId,
+            Long sellerId,
+            String decision
+    ) {
+
+        if (orderId == null || sellerId == null || decision == null) {
+            throw new IllegalArgumentException(
+                    "Order, seller and decision are required"
+            );
+        }
+
+        CustomerOrder order = orderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Order not found")
+                );
+
+        if (!"PENDING_SELLER_CONFIRMATION".equals(order.getStatus())) {
+            throw new IllegalArgumentException(
+                    "This order has already been processed"
+            );
+        }
+
+        if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
+            throw new IllegalArgumentException("This order has no items");
+        }
+
+        // Verify that every item in this order belongs to the responding seller.
+        for (OrderItem item : order.getOrderItems()) {
+            Product product = item.getProduct();
+
+            if (product == null
+                    || product.getSeller() == null
+                    || !sellerId.equals(product.getSeller().getUserId())) {
+                throw new IllegalArgumentException(
+                        "You cannot respond to an order belonging to another seller"
+                );
+            }
+        }
+
+        String normalisedDecision = decision.trim().toUpperCase();
+
+        if ("REJECT".equals(normalisedDecision)
+                || "REJECTED".equals(normalisedDecision)) {
+
+            order.setStatus("REJECTED");
+
+            // No stock is returned here because it was never deducted.
+            return orderRepository.save(order);
+        }
+
+        if (!"ACCEPT".equals(normalisedDecision)
+                && !"ACCEPTED".equals(normalisedDecision)
+                && !"CONFIRM".equals(normalisedDecision)
+                && !"CONFIRMED".equals(normalisedDecision)) {
+            throw new IllegalArgumentException(
+                    "Decision must be ACCEPT or REJECT"
+            );
+        }
+
+        // Recheck stock at acceptance time because it may have changed
+        // since the buyer first placed the order.
+        for (OrderItem item : order.getOrderItems()) {
+            Product product = productRepository
+                    .findById(item.getProduct().getProductId())
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "A product in this order no longer exists"
+                            )
+                    );
+
+            if (product.getStock() < item.getQuantity()) {
+                throw new IllegalArgumentException(
+                        "Not enough stock remains for " + product.getName()
+                );
+            }
+        }
+
+        // Deduct stock only after all items pass validation.
+        for (OrderItem item : order.getOrderItems()) {
+            Product product = productRepository
+                    .findById(item.getProduct().getProductId())
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "A product in this order no longer exists"
+                            )
+                    );
+
+            product.setStock(product.getStock() - item.getQuantity());
+            productRepository.save(product);
+        }
+
+        order.setStatus("CONFIRMED");
+
+        // CONFIRMED means the seller accepted the order, not that payment
+        // was received. Cash/EFT must remain pending until paid.
+        return orderRepository.save(order);
+    }
+
+
 
     @Override
     @Transactional(readOnly = true)
@@ -210,11 +317,20 @@ public class CustomerOrderService implements ICustomerOrderService {
     }
 
     // Add this method to CustomerOrderService
+
     @Transactional
-    public CustomerOrder createOrderFromDetails(User buyer, List<OrderItem> orderItems,
-                                                String paymentMethod, String shippingAddress) {
-        // Use the factory to create order with generated number
-        CustomerOrder order = CustomerOrderFactory.createOrder(buyer, orderItems, paymentMethod, shippingAddress);
+    public CustomerOrder createOrderFromDetails(
+            User buyer,
+            List<OrderItem> orderItems,
+            String paymentMethod,
+            String shippingAddress
+    ) {
+        CustomerOrder order = CustomerOrderFactory.createOrder(
+                buyer,
+                orderItems,
+                paymentMethod,
+                shippingAddress
+        );
 
         // CRITICAL: Update stock for each product before saving order
         if (order.getOrderItems() != null) {
@@ -241,9 +357,9 @@ public class CustomerOrderService implements ICustomerOrderService {
             }
         }
 
-        // Then save the order
-        CustomerOrder savedOrder = orderRepository.save(order);
-        return savedOrder;
+
+
+        return create(order);
     }
 
     // NEW: Method to check if order can be fulfilled (all items in stock)

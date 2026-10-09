@@ -217,5 +217,91 @@ public class CustomerOrderController {
                     '}';
         }
     }
+    /**
+     * Returns orders that contain listings belonging to this seller.
+     */
+    @GetMapping("/seller/{sellerId}")
+    public ResponseEntity<?> getSellerOrders(@PathVariable Long sellerId) {
+        try {
+            return ResponseEntity.ok(orderService.getOrdersForSeller(sellerId));
+        } catch (Exception e) {
+            System.err.println("Error fetching seller orders: " + e.getMessage());
+
+            return ResponseEntity.badRequest().body(
+                    Map.of("message", "Could not load seller orders.")
+            );
+        }
+    }
+
+    /**
+     * Seller accepts or rejects a pending order.
+     *
+     * Expected request:
+     * {
+     *   "sellerId": 12,
+     *   "decision": "ACCEPT"
+     * }
+     *
+     * decision can be: ACCEPT or REJECT.
+     */
+    @PostMapping("/{orderId}/seller-decision")
+    public ResponseEntity<?> respondToOrder(
+            @PathVariable Long orderId,
+            @RequestBody SellerDecisionRequest request
+    ) {
+        try {
+            if (request == null
+                    || request.getSellerId() == null
+                    || request.getDecision() == null) {
+                return ResponseEntity.badRequest().body(
+                        Map.of("message", "Seller ID and decision are required.")
+                );
+            }
+
+            CustomerOrder updated = orderService.respondToOrder(
+                    orderId,
+                    request.getSellerId(),
+                    request.getDecision()
+            );
+
+            return ResponseEntity.ok(updated);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                    Map.of("message", String.valueOf(e.getMessage()))
+            );
+        } catch (Exception e) {
+            System.err.println("Error responding to order: " + e.getMessage());
+
+            return ResponseEntity.internalServerError().body(
+                    Map.of("message", "Could not update this order.")
+            );
+        }
+    }
+
+    public static class SellerDecisionRequest {
+
+        private Long sellerId;
+        private String decision;
+
+        public SellerDecisionRequest() {
+        }
+
+        public Long getSellerId() {
+            return sellerId;
+        }
+
+        public void setSellerId(Long sellerId) {
+            this.sellerId = sellerId;
+        }
+
+        public String getDecision() {
+            return decision;
+        }
+
+        public void setDecision(String decision) {
+            this.decision = decision;
+        }
+    }
 
 }

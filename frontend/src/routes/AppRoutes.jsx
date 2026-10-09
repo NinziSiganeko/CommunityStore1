@@ -18,6 +18,7 @@ import Orders from "../pages/Orders.jsx";
 import OrderDetails from "../pages/OrderDetails.jsx";
 import MyListings from "../pages/MyListings.jsx";
 import Wishlist from "../pages/Wishlist.jsx";
+import SellerOrders from "../pages/SellerOrders.jsx";
 import AdminDashboard from "../pages/AdminDashboard.jsx";
 import RoutePlaceholder from "../pages/RoutePlaceholder.jsx";
 import MainLayout from "../mainlayout/MainLayout.jsx";
@@ -163,6 +164,14 @@ function AppRoutes() {
                     element={
                         <RequireAuth>
                             <MyListings />
+                        </RequireAuth>
+                    }
+                />
+                <Route
+                    path="/seller-orders"
+                    element={
+                        <RequireAuth>
+                            <SellerOrders />
                         </RequireAuth>
                     }
                 />

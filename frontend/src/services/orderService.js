@@ -143,6 +143,31 @@ async function cancelOrder(orderId) {
     await apiClient.delete(`/orders/${orderId}`);
     return true;
 }
+async function getOrdersForSeller(sellerId) {
+    const response = await apiClient.get(
+        `/orders/seller/${sellerId}`,
+    );
+
+    return (Array.isArray(response.data) ? response.data : [])
+        .map(mapOrder)
+        .sort(
+            (a, b) =>
+                new Date(b.orderDate || 0) -
+                new Date(a.orderDate || 0),
+        );
+}
+
+async function respondToSellerOrder(orderId, sellerId, decision) {
+    const response = await apiClient.post(
+        `/orders/${orderId}/seller-decision`,
+        {
+            sellerId,
+            decision,
+        },
+    );
+
+    return mapOrder(response.data);
+}
 
 export {
     cancelOrder,
@@ -151,5 +176,7 @@ export {
     fetchProductById,
     getOrderById,
     getOrdersForBuyer,
+    getOrdersForSeller,
     mapOrder,
+    respondToSellerOrder,
 };
