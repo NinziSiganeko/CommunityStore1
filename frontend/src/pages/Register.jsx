@@ -69,6 +69,7 @@ function Register() {
        * authService now sends this directly using
        * fetch(), following the AnimeStore approach.
        */
+
       await register(form);
 
       showToast(
@@ -76,6 +77,8 @@ function Register() {
               ? "Vendor account created — an admin will review it"
               : "Account created. You can now sign in.",
       );
+
+
 
       /**
        * Registration does not automatically log
@@ -131,7 +134,9 @@ function Register() {
 
   return (
       <div className="screen auth-screen">
-        onBell={() => navigate("/notifications")}
+        <TopBar
+            onBell={() => navigate("/notifications")}
+        />
         <div className="auth-content auth-content-wide">
           <div className="auth-icon">
             <i className="bi bi-person-plus-fill" />

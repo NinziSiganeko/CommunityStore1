@@ -57,11 +57,14 @@ public class ProductController {
             @RequestParam(required = false) MultipartFile productImage
     ) throws IOException {
 
-        if (stock < 0) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        if (price <= 0) {
+        if (name == null || name.isBlank()
+                || name.trim().length() > 255
+                || !Double.isFinite(price)
+                || price <= 0
+                || stock < 0
+                || category_Id == null
+                || sellerId == null
+                || sellerId <= 0) {
             return ResponseEntity.badRequest().build();
         }
 
@@ -92,6 +95,7 @@ public class ProductController {
 
         return ResponseEntity.ok(productService.create(product));
     }
+
     /**
      * Converts an optional condition value into the
      * {@link ProductCondition} enum.
@@ -113,7 +117,6 @@ public class ProductController {
             );
         }
     }
-
 
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts() {
@@ -200,7 +203,6 @@ public class ProductController {
                 .setProductImage(existingProduct.getProductImage())
                 .setSeller(existingProduct.getSeller())
                 .build();
-
 
         Product updatedProduct = productService.update(productToUpdate);
         return updatedProduct != null

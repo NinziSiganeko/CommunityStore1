@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 import { BottomNav, TopBar } from "../components/Navigation.jsx";
 import {
     Banner,

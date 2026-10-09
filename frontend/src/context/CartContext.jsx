@@ -46,6 +46,12 @@ function readStoredCart() {
                 category: item.category || null,
                 seller: item.seller || null,
                 sellerUserId: item.sellerUserId ?? null,
+                sellerEmail: item.sellerEmail || null,
+                sellerUserType: item.sellerUserType || null,
+                sellerVerified:
+                    typeof item.sellerVerified === "boolean"
+                        ? item.sellerVerified
+                        : null,
                 condition: item.condition || null,
                 quantity: Math.max(1, Number(item.quantity || 1)),
             }));
@@ -70,6 +76,12 @@ function toCartLine(product, quantity) {
         category: product.category || null,
         seller: product.seller || null,
         sellerUserId: product.sellerUserId ?? null,
+        sellerEmail: product.sellerEmail || null,
+        sellerUserType: product.sellerUserType || null,
+        sellerVerified:
+            typeof product.sellerVerified === "boolean"
+                ? product.sellerVerified
+                : null,
         condition: product.condition || null,
         quantity: Math.max(1, Number(quantity || 1)),
         unavailable: false,

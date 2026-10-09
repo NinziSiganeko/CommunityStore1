@@ -1,6 +1,5 @@
 package com.communitystore.controller;
 
-
 import com.communitystore.domain.User;
 import com.communitystore.domain.CustomerOrder;
 import com.communitystore.domain.OrderItem;
@@ -34,7 +33,6 @@ public class CustomerOrderController {
         try {
             System.out.println("Creating order for buyer: " +
                     (request.getBuyer() != null ? request.getBuyer().getUserId() : "null"));
-
             CustomerOrder order = CustomerOrderFactory.createOrder(
                     request.getBuyer(),
                     request.getOrderItems(),

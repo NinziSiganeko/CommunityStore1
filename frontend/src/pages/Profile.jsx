@@ -10,7 +10,7 @@ import {
 } from "../components/Feedback.jsx";
 
 import { useToast } from "../context/ToastContext.jsx";
-import useWishlist from "../hooks/useWishlist.jsx";
+import useWishlist from "../hooks/useWishlist.js";
 
 import {
     getCurrentUser,
@@ -211,6 +211,7 @@ function Profile() {
     const quickLinks = [
         { label: "My orders", icon: "bi-receipt", path: "/orders" },
         { label: "My listings", icon: "bi-shop", path: "/my-listings" },
+        { label: "Seller orders", icon: "bi-box-seam", path: "/seller-orders" },
         { label: "Wishlist", icon: "bi-heart", path: "/wishlist" },
         { label: "Cart", icon: "bi-bag", path: "/cart" },
         { label: "Chat & Community", icon: "bi-chat-dots", path: "/chat" },

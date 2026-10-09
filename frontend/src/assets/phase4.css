@@ -1434,3 +1434,969 @@ button.stat-card {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Marketplace Payment Process, Seller Routing & Chat Styles
+   ══════════════════════════════════════════════════════════════ */
+
+.seller-payout-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.seller-payout-card {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: grid;
+    gap: 8px;
+}
+
+.seller-payout-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.seller-payout-head > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.seller-role-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.seller-role-pill.vendor {
+    background: #DCFCE7;
+    color: #15803D;
+}
+
+.seller-role-pill.peer {
+    background: #DBEAFE;
+    color: #1D4ED8;
+}
+
+.seller-payout-amount {
+    color: #0F172A;
+    font-size: 14px;
+}
+
+.seller-payout-items {
+    margin: 0;
+    font-size: 12px;
+    color: #475569;
+}
+
+.seller-payout-routing {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 9px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #334155;
+    line-height: 1.45;
+}
+
+.seller-payout-routing .bi {
+    color: #2563EB;
+    margin-right: 4px;
+}
+
+.seller-payout-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ── Enhanced Payment Option Cards ────────────────────────── */
+
+.payment-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    text-align: left;
+    padding: 13px 14px;
+    border-radius: 12px;
+    border: 1.5px solid #E2E8F0;
+    background: #FFFFFF;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.payment-option.selected {
+    border-color: #2563EB;
+    background: #EFF6FF;
+    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.1);
+}
+
+.payment-option-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #F1F5F9;
+    color: #1E293B;
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.payment-option.selected .payment-option-icon {
+    background: #2563EB;
+    color: #FFFFFF;
+}
+
+.payment-option-body {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.payment-option-top {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.payment-method-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    background: #E0E7FF;
+    color: #3730A3;
+}
+
+.payment-radio-icon {
+    font-size: 17px;
+    color: #94A3B8;
+    margin-top: 2px;
+}
+
+.payment-option.selected .payment-radio-icon {
+    color: #2563EB;
+}
+
+/* ── Interactive Payment Method Forms ─────────────────────── */
+
+.payment-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.payment-method-form {
+    display: grid;
+    gap: 12px;
+}
+
+.payment-explainer-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 13px;
+    border-radius: 11px;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.payment-explainer-box > .bi {
+    font-size: 18px;
+    margin-top: 1px;
+}
+
+.payment-explainer-box strong {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 13px;
+}
+
+.payment-explainer-box p {
+    margin: 0;
+}
+
+.payment-explainer-box.cash {
+    background: #ECFDF5;
+    border: 1px solid #A7F3D0;
+    color: #065F46;
+}
+
+.payment-explainer-box.escrow {
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    color: #1E3A8A;
+}
+
+.safe-zone-grid {
+    display: grid;
+    gap: 8px;
+}
+
+.safe-zone-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #E2E8F0;
+    background: #F8FAFC;
+    cursor: pointer;
+}
+
+.safe-zone-chip strong {
+    display: block;
+    font-size: 12.5px;
+    color: #0F172A;
+}
+
+.safe-zone-chip small {
+    display: block;
+    font-size: 11px;
+    color: #64748B;
+}
+
+.safe-zone-chip.active {
+    border-color: #16A34A;
+    background: #F0FDF4;
+    color: #14532D;
+}
+
+.payment-checkbox-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    font-size: 12px;
+    font-weight: 500;
+    color: #334155;
+}
+
+.payment-checkbox-row input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+/* Visual Bank Card Preview */
+.card-visual-preview {
+    background: linear-gradient(135deg, #0F172A 0%, #1D4ED8 100%);
+    color: #FFFFFF;
+    border-radius: 14px;
+    padding: 16px 18px;
+    display: grid;
+    gap: 14px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+}
+
+.card-visual-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    opacity: 0.9;
+}
+
+.card-brand-label {
+    font-weight: 800;
+    font-size: 14px;
+}
+
+.card-visual-number {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 18px;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+}
+
+.card-visual-bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.card-visual-bottom small {
+    display: block;
+    font-size: 9px;
+    opacity: 0.72;
+    letter-spacing: 0.08em;
+}
+
+.card-visual-bottom strong {
+    font-size: 12px;
+}
+
+.card-type-toggle {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.chip-toggle {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 9px;
+    border: 1px solid #CBD5E1;
+    background: #F8FAFC;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+}
+
+.chip-toggle.active {
+    background: #1D4ED8;
+    border-color: #1D4ED8;
+    color: #FFFFFF;
+}
+
+/* Instant EFT Bank Grid */
+.bank-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+}
+
+.bank-tile {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1.5px solid #E2E8F0;
+    background: #FFFFFF;
+    text-align: left;
+    cursor: pointer;
+}
+
+.bank-tile strong {
+    display: block;
+    font-size: 12.5px;
+    color: #0F172A;
+}
+
+.bank-tile small {
+    font-size: 11px;
+    color: #64748B;
+}
+
+.bank-tile.active {
+    border-color: #2563EB;
+    background: #EFF6FF;
+}
+
+.eft-payee-box {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    padding: 11px 13px;
+    border-radius: 10px;
+    background: #F8FAFC;
+    border: 1px dashed #94A3B8;
+}
+
+.eft-payee-box span {
+    display: block;
+    font-size: 11px;
+    color: #64748B;
+}
+
+.eft-payee-box strong {
+    font-size: 12.5px;
+    color: #0F172A;
+}
+
+/* SnapScan QR Card */
+.snapscan-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border-radius: 12px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    flex-wrap: wrap;
+}
+
+.snapscan-qr-box {
+    padding: 6px;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 10px;
+}
+
+.snapscan-info {
+    flex: 1;
+    min-width: 180px;
+    display: grid;
+    gap: 4px;
+}
+
+.snapscan-info strong {
+    font-size: 13.5px;
+    color: #0F172A;
+}
+
+.snapscan-info p {
+    margin: 0;
+    font-size: 12px;
+    color: #475569;
+}
+
+.summary-line-seller {
+    color: #64748B;
+    font-weight: 500;
+}
+
+/* ── Order Lifecycle Stepper & Post-Payment Actions ───────── */
+
+.order-stepper {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.order-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+}
+
+.order-step.done {
+    background: #F0FDF4;
+    border-color: #BBF7D0;
+}
+
+.order-step.current {
+    background: #EFF6FF;
+    border-color: #93C5FD;
+}
+
+.order-step-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #E2E8F0;
+    color: #475569;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.order-step.done .order-step-dot {
+    background: #16A34A;
+    color: #FFFFFF;
+}
+
+.order-step.current .order-step-dot {
+    background: #2563EB;
+    color: #FFFFFF;
+}
+
+.order-step strong {
+    display: block;
+    font-size: 12.5px;
+    color: #0F172A;
+}
+
+.order-step small {
+    font-size: 11px;
+    color: #64748B;
+}
+
+.payment-receipt-note {
+    margin-top: 10px;
+    padding: 9px 12px;
+    border-radius: 9px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    font-size: 12px;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.payment-receipt-note .bi {
+    color: #16A34A;
+    font-size: 15px;
+}
+
+.post-payment-actions {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #E2E8F0;
+    display: grid;
+    gap: 10px;
+}
+
+.switch-payment-box {
+    background: #F8FAFC;
+    border: 1px solid #CBD5E1;
+    border-radius: 10px;
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+}
+
+.order-item-contact-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.inline-link.muted {
+    color: #64748B;
+}
+
+/* ── Product Details Payment & Chat Starter ───────────────── */
+
+.product-payment-callout {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 11px 13px;
+    margin: 8px 0;
+}
+
+.product-payment-callout-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.product-payment-callout-head > .bi {
+    font-size: 19px;
+    color: #2563EB;
+    margin-top: 2px;
+}
+
+.product-payment-callout-head strong {
+    display: block;
+    font-size: 13px;
+    color: #0F172A;
+    margin-bottom: 2px;
+}
+
+.product-payment-callout-head p {
+    margin: 0;
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.45;
+}
+
+.product-buy-split {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+.marketplace-chat-starter {
+    margin-top: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    display: grid;
+    gap: 9px;
+}
+
+.marketplace-chat-starter-title {
+    font-size: 12.5px;
+    color: #1E3A8A;
+}
+
+.marketplace-chat-starter-title .bi {
+    color: #2563EB;
+    margin-right: 5px;
+}
+
+.quick-prompt-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.quick-prompt-chip {
+    background: #FFFFFF;
+    border: 1px solid #93C5FD;
+    color: #1D4ED8;
+    border-radius: 999px;
+    padding: 5px 11px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.quick-prompt-chip:hover {
+    background: #DBEAFE;
+}
+
+/* ── Full Marketplace Chat Screen ─────────────────────────── */
+
+.chat-inbox-strip {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+}
+
+.chat-thread-pill {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 12px;
+    border-radius: 12px;
+    border: 1.5px solid #E2E8F0;
+    background: #FFFFFF;
+    min-width: 210px;
+    text-align: left;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.chat-thread-pill.active {
+    border-color: #2563EB;
+    background: #EFF6FF;
+}
+
+.chat-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #1E293B;
+    color: #FFFFFF;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.chat-avatar.vendor {
+    background: #15803D;
+}
+
+.chat-avatar.community {
+    background: #2563EB;
+}
+
+.chat-thread-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-thread-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.chat-thread-top strong {
+    font-size: 12.5px;
+    color: #0F172A;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-thread-meta small {
+    display: block;
+    font-size: 11px;
+    color: #64748B;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-unread-dot {
+    background: #2563EB;
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 1px 6px;
+}
+
+.chat-window-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chat-window-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    background: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+    flex-wrap: wrap;
+}
+
+.chat-window-partner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chat-window-partner h2 {
+    margin: 0;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+.chat-window-partner p {
+    margin: 2px 0 0;
+    font-size: 11.5px;
+    color: #64748B;
+}
+
+.chat-context-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 14px;
+    background: #FEFCE8;
+    border-bottom: 1px solid #FEF08A;
+    font-size: 12px;
+    flex-wrap: wrap;
+}
+
+.chat-context-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    color: #713F12;
+}
+
+.chat-order-badge {
+    background: #FEF08A;
+    color: #854D0E;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 11px;
+}
+
+.chat-context-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chat-proposal-drawer {
+    padding: 12px 14px;
+    background: #EFF6FF;
+    border-bottom: 1px solid #BFDBFE;
+    display: grid;
+    gap: 10px;
+}
+
+.chat-proposal-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #1E3A8A;
+}
+
+.chat-proposal-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.chat-messages-stream {
+    padding: 14px;
+    max-height: 360px;
+    min-height: 220px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #F8FAFC;
+}
+
+.chat-empty-thread {
+    margin: auto;
+    text-align: center;
+    color: #64748B;
+    font-size: 12.5px;
+    max-width: 320px;
+    padding: 24px 12px;
+}
+
+.chat-empty-thread .bi {
+    font-size: 28px;
+    color: #93C5FD;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.chat-bubble-row {
+    display: flex;
+}
+
+.chat-bubble-row.mine {
+    justify-content: flex-end;
+}
+
+.chat-bubble-row.theirs {
+    justify-content: flex-start;
+}
+
+.chat-bubble {
+    max-width: min(82%, 460px);
+    padding: 10px 12px;
+    border-radius: 13px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    display: grid;
+    gap: 5px;
+}
+
+.chat-bubble.mine {
+    background: #2563EB;
+    color: #FFFFFF;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-bubble.theirs {
+    background: #FFFFFF;
+    color: #0F172A;
+    border: 1px solid #E2E8F0;
+    border-bottom-left-radius: 4px;
+}
+
+.chat-bubble-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    opacity: 0.9;
+}
+
+.chat-role-tag {
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 9.5px;
+    font-weight: 700;
+    background: rgba(15, 23, 42, 0.12);
+}
+
+.chat-bubble.mine .chat-role-tag {
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.chat-proposal-tag {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 6px 9px;
+    border-radius: 8px;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.chat-bubble.mine .chat-proposal-tag {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.chat-proposal-accept-btn {
+    border: 0;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #16A34A;
+    color: #FFFFFF;
+    cursor: pointer;
+}
+
+.chat-bubble-text {
+    margin: 0;
+    word-break: break-word;
+}
+
+.chat-bubble-time {
+    font-size: 10px;
+    opacity: 0.72;
+    justify-self: end;
+}
+
+.chat-quick-bar {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 8px 12px;
+    background: #FFFFFF;
+    border-top: 1px solid #E2E8F0;
+}
+
+.chat-quick-bar .quick-prompt-chip {
+    flex-shrink: 0;
+}
+
+.chat-composer {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #FFFFFF;
+    border-top: 1px solid #E2E8F0;
+}
+
+.chat-composer input {
+    flex: 1;
+    border: 1px solid #CBD5E1;
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 13px;
+}

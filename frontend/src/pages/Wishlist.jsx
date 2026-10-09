@@ -6,7 +6,7 @@ import { ConfirmButton, StateMessage } from "../components/Feedback.jsx";
 
 import { useCart } from "../context/CartContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
-import useWishlist from "../hooks/useWishlist.jsx";
+import useWishlist from "../hooks/useWishlist.js";
 
 function Wishlist() {
     const navigate = useNavigate();

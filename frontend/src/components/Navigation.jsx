@@ -7,7 +7,7 @@ import {
     isPendingVendor,
     signOut,
 } from "../services/authService.js";
-import useWishlist from "../hooks/useWishlist.jsx";
+import useWishlist from "../hooks/useWishlist.js";
 
 /**
  * Top navigation bar.

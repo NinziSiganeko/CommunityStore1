@@ -124,6 +124,86 @@ public class PaymentService implements IPaymentService {
         return paymentRepository.findById(paymentId).orElse(null);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Payment findByOrderId(Long orderId) {
+        if (!Helper.isValidId(orderId)) {
+            throw new IllegalArgumentException("A valid order ID is required");
+        }
+        return paymentRepository.findByCustomerOrder_OrderId(orderId).orElse(null);
+    }
+
+    @Override
+    @Transactional
+    public Payment confirmOrderPayment(
+            Long orderId,
+            PaymentMethod method,
+            String paymentDetails,
+            String payoutType,
+            Boolean handoverConfirmed
+    ) {
+        if (!Helper.isValidId(orderId)) {
+            throw new IllegalArgumentException("A valid order ID is required");
+        }
+
+        CustomerOrder order = customerOrderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+        Payment existing = paymentRepository
+                .findByCustomerOrder_OrderId(orderId)
+                .orElse(null);
+
+        PaymentMethod selectedMethod = method != null
+                ? method
+                : existing != null ? existing.getMethod() : null;
+        if (selectedMethod != PaymentMethod.CASH
+                && selectedMethod != PaymentMethod.EFT) {
+            throw new IllegalArgumentException(
+                    "Online payment is not available yet. Choose Cash or EFT."
+            );
+        }
+
+        String details = normalizePaymentField(
+                paymentDetails != null
+                        ? paymentDetails
+                        : existing != null ? existing.getPaymentDetails() : null,
+                255,
+                "Payment details"
+        );
+        String payout = normalizePaymentField(
+                payoutType != null
+                        ? payoutType
+                        : existing != null ? existing.getPayoutType() : null,
+                60,
+                "Payout type"
+        );
+        boolean confirmed = handoverConfirmed != null
+                ? handoverConfirmed
+                : existing != null && existing.isHandoverConfirmed();
+
+        Payment updated;
+        if (existing == null) {
+            updated = create(new Payment.Builder()
+                    .setCustomerOrder(order)
+                    .setMethod(selectedMethod)
+                    .setPaymentDetails(details)
+                    .setPayoutType(payout)
+                    .setHandoverConfirmed(confirmed)
+                    .build());
+        } else {
+            updated = paymentRepository.save(new Payment.Builder()
+                    .copy(existing)
+                    .setMethod(selectedMethod)
+                    .setPaymentDetails(details)
+                    .setPayoutType(payout)
+                    .setHandoverConfirmed(confirmed)
+                    .build());
+        }
+
+        order.setPaymentMethod(selectedMethod.name());
+        customerOrderRepository.save(order);
+        return updated;
+    }
+
     /*
      * Keep this service method for future gateway integration.
      * The public controller must not allow buyers to self-report a
@@ -152,5 +232,23 @@ public class PaymentService implements IPaymentService {
     @Transactional(readOnly = true)
     public List<Payment> getAll() {
         return paymentRepository.findAll();
+    }
+
+    private static String normalizePaymentField(
+            String value,
+            int maxLength,
+            String label
+    ) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = value.trim();
+        if (trimmed.length() > maxLength) {
+            throw new IllegalArgumentException(
+                    label + " cannot exceed " + maxLength + " characters"
+            );
+        }
+        return trimmed;
     }
 }

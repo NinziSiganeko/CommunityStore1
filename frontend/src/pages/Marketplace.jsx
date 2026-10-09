@@ -32,7 +32,7 @@ const EMPTY_FILTERS = {
 };
 
 function Marketplace() {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -50,7 +50,8 @@ function Marketplace() {
     const [priceDraft, setPriceDraft] = useState({
         min: filters.min,
         max: filters.max,
-  });
+    });
+
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -78,32 +79,33 @@ function Marketplace() {
         });
     }
 
-  useEffect(() => {
-    let active = true;
+    useEffect(() => {
+        let active = true;
 
-      Promise.allSettled([getProducts(), getCategories()])
-          .then(([productsResult, categoriesResult]) => {
-              if (!active) {
-                  return;
-              }
+        Promise.allSettled([getProducts(), getCategories()])
+            .then(([productsResult, categoriesResult]) => {
+                if (!active) {
+                    return;
+                }
 
-              if (productsResult.status === "fulfilled") {
-                  setProducts(productsResult.value);
-              } else {
-            setError(
-                "We couldn't load products. Please try again.",
-            );
-          }
-              if (categoriesResult.status === "fulfilled") {
-                  setCategories(
-                      Array.isArray(categoriesResult.value)
-                          ? categoriesResult.value
-                          : [],
-                  );
-              }
-        })
-        .finally(() => {
-          if (active) {
+                if (productsResult.status === "fulfilled") {
+                    setProducts(productsResult.value);
+                } else {
+                    setError(
+                        "We couldn't load products. Please try again.",
+                    );
+                }
+
+                if (categoriesResult.status === "fulfilled") {
+                    setCategories(
+                        Array.isArray(categoriesResult.value)
+                            ? categoriesResult.value
+                            : [],
+                    );
+                }
+            })
+            .finally(() => {
+                if (active) {
             setLoading(false);
           }
         });

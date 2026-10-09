@@ -93,6 +93,11 @@ function Cart() {
                     price: product.priceValue,
                     img: product.img,
                     stock: product.stock,
+                    seller: product.seller,
+                    sellerUserId: product.sellerUserId,
+                    sellerEmail: product.sellerEmail,
+                    sellerUserType: product.sellerUserType,
+                    sellerVerified: product.sellerVerified,
                     unavailable: product.stock < 1,
                 };
 

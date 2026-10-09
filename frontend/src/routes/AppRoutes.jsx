@@ -4,7 +4,6 @@ import {
     Routes,
     useLocation,
 } from "react-router-dom";
-
 import Home from "../pages/Home.jsx";
 import Marketplace from "../pages/Marketplace.jsx";
 import ProductDetails from "../pages/ProductDetails.jsx";
@@ -18,9 +17,11 @@ import Orders from "../pages/Orders.jsx";
 import OrderDetails from "../pages/OrderDetails.jsx";
 import MyListings from "../pages/MyListings.jsx";
 import Wishlist from "../pages/Wishlist.jsx";
-import SellerOrders from "../pages/SellerOrders.jsx";
 import AdminDashboard from "../pages/AdminDashboard.jsx";
-import RoutePlaceholder from "../pages/RoutePlaceholder.jsx";
+import SellerOrders from "../pages/SellerOrders.jsx";
+import Chat from "../pages/Chat.jsx";
+import Bulletin from "../pages/Bulletin.jsx";
+import Notifications from "../pages/Notifications.jsx";
 import MainLayout from "../mainlayout/MainLayout.jsx";
 
 import {
@@ -36,7 +37,7 @@ function RequireAuth({ children }) {
                 to="/login"
                 replace
                 state={{
-                    from: location.pathname,
+                    from: `${location.pathname}${location.search || ""}`,
                 }}
             />
         );
@@ -57,16 +58,6 @@ function AuthOnly({ children }) {
 
     return children;
 }
-
-/*
- * Features that intentionally stay placeholders until their
- * phase lands: chat, the bulletin board and notifications.
- */
-const PLACEHOLDER_ROUTES = [
-    ["notifications", "Notifications"],
-    ["chat", "Chat & Community"],
-    ["bulletin", "Bulletin"],
-];
 
 function AppRoutes() {
     return (
@@ -98,6 +89,16 @@ function AppRoutes() {
                 />
 
                 <Route
+                    path="/bulletin"
+                    element={<Bulletin />}
+                />
+
+                <Route
+                    path="/notifications"
+                    element={<Notifications />}
+                />
+
+                <Route
                     path="/login"
                     element={
                         <AuthOnly>
@@ -123,6 +124,7 @@ function AppRoutes() {
                         </RequireAuth>
                     }
                 />
+
                 <Route
                     path="/profile"
                     element={
@@ -158,6 +160,15 @@ function AppRoutes() {
                         </RequireAuth>
                     }
                 />
+                <Route
+                    path="/seller-orders"
+                    element={
+                        <RequireAuth>
+                            <SellerOrders />
+                        </RequireAuth>
+                    }
+                />
+
 
                 <Route
                     path="/my-listings"
@@ -167,11 +178,12 @@ function AppRoutes() {
                         </RequireAuth>
                     }
                 />
+
                 <Route
-                    path="/seller-orders"
+                    path="/chat"
                     element={
                         <RequireAuth>
-                            <SellerOrders />
+                            <Chat />
                         </RequireAuth>
                     }
                 />
@@ -184,20 +196,6 @@ function AppRoutes() {
                         </RequireAuth>
                     }
                 />
-
-                {PLACEHOLDER_ROUTES.map(
-                    ([path, title]) => (
-                        <Route
-                            key={path}
-                            path={`/${path}`}
-                            element={
-                                <RoutePlaceholder
-                                    title={title}
-                                />
-                            }
-                        />
-                    ),
-                )}
             </Route>
 
             <Route

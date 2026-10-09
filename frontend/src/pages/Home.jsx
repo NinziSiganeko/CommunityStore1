@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import {
   ANNOUNCEMENTS,
-  CATEGORIES
+  CATEGORIES,
 } from "../utils/data.jsx";
 
 import { ShieldIcon } from "../components/Icons.jsx";
@@ -152,6 +153,7 @@ function Home() {
               </button>
             </form>
           </div>
+
           {isPendingVendor(user) && (
               <div className="home-banner-wrap">
                 <Banner
